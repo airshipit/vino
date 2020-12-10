@@ -34,10 +34,121 @@ spec:
         spec:
           description: VinoSpec defines the desired state of Vino
           properties:
-            foo:
-              description: Foo is an example field of Vino. Edit Vino_types.go to
-                remove/update
-              type: string
+            configuration:
+              description: Define CPU configuration
+              properties:
+                cpuExclude:
+                  description: Exclude CPU example 0-4,54-60
+                  type: string
+              type: object
+            networks:
+              description: Define network Parametes
+              properties:
+                allocationStart:
+                  type: string
+                allocationStop:
+                  type: string
+                dns_servers:
+                  items:
+                    type: string
+                  type: array
+                name:
+                  description: Network Parameter defined
+                  type: string
+                routes:
+                  description: Routes defined
+                  properties:
+                    to:
+                      type: string
+                    via:
+                      type: string
+                  type: object
+                subnet:
+                  type: string
+              type: object
+            nodelabels:
+              description: Define nodelabel parameters
+              properties:
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: Node type needs to specified
+                  type: object
+              required:
+              - matchLabels
+              type: object
+            nodes:
+              description: Define node details
+              items:
+                description: VinoSpec node definitions
+                properties:
+                  count:
+                    type: integer
+                  diskDrives:
+                    description: Define disk drive for the nodes
+                    properties:
+                      name:
+                        type: string
+                      options:
+                        description: Define disk size
+                        properties:
+                          sizeGb:
+                            type: integer
+                          sparse:
+                            type: boolean
+                        type: object
+                      path:
+                        type: string
+                      type:
+                        type: string
+                    type: object
+                  labels:
+                    description: Define node flavor
+                    properties:
+                      vmFlavor:
+                        additionalProperties:
+                          type: string
+                        type: object
+                    type: object
+                  libvirtTemplateDefinition:
+                    description: Define Libvirt template
+                    properties:
+                      Name:
+                        type: string
+                      Namespace:
+                        type: string
+                    type: object
+                  name:
+                    description: Parameter for Node master or worker-standard
+                    type: string
+                  networkInterfaces:
+                    properties:
+                      mtu:
+                        type: integer
+                      name:
+                        description: Define parameter for netwok interfaces
+                        type: string
+                      network:
+                        type: string
+                      options:
+                        description: VinoSpec Network option parameter definition
+                        properties:
+                          bridgeName:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          interfaceName:
+                            items:
+                              type: string
+                            type: array
+                          vlan:
+                            type: integer
+                        type: object
+                      type:
+                        type: string
+                    type: object
+                type: object
+              type: array
           type: object
         status:
           description: VinoStatus defines the observed state of Vino

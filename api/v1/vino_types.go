@@ -20,22 +20,101 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // VinoSpec defines the desired state of Vino
 type VinoSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	//Define nodelabel parameters
+	NodeSelector *NodeSelector `json:"nodelabels,omitempty"`
+	//Define CPU configuration
+	Configuration *CPUConfiguration `json:"configuration,omitempty"`
+	//Define network Parametes
+	Network *Network `json:"networks,omitempty"`
+	//Define node details
+	Node []NodeSet `json:"nodes,omitempty"`
+}
 
-	// Foo is an example field of Vino. Edit Vino_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+type NodeSelector struct {
+	// Node type needs to specified
+	MatchLabels map[string]string `json:"matchLabels"`
+}
+type CPUConfiguration struct {
+	//Exclude CPU example 0-4,54-60
+	CPUExclude string `json:"cpuExclude,omitempty"`
+}
+
+//Define network specs
+type Network struct {
+	//Network Parameter defined
+	Name            string    `json:"name,omitempty"`
+	SubNet          string    `json:"subnet,omitempty"`
+	AllocationStart string    `json:"allocationStart,omitempty"`
+	AllocationStop  string    `json:"allocationStop,omitempty"`
+	DNSServers      []string  `json:"dns_servers,omitempty"`
+	Routes          *VMRoutes `json:"routes,omitempty"`
+}
+
+//Routes defined
+type VMRoutes struct {
+	To  string `json:"to,omitempty"`
+	Via string `json:"via,omitempty"`
+}
+
+//VinoSpec node definitions
+type NodeSet struct {
+
+	//Parameter for Node master or worker-standard
+	Name                      string              `json:"name,omitempty"`
+	NodeLabel                 *VMNodeFlavor       `json:"labels,omitempty"`
+	Count                     int                 `json:"count,omitempty"`
+	LibvirtTemplateDefinition *LibvirtTemplate    `json:"libvirtTemplateDefinition,omitempty"`
+	NetworkInterface          *NetworkInterface   `json:"networkInterfaces,omitempty"`
+	DiskDrives                *DiskDrivesTemplate `json:"diskDrives,omitempty"`
+}
+
+//Define node flavor
+type VMNodeFlavor struct {
+	VMFlavor map[string]string `json:"vmFlavor,omitempty"`
+}
+
+//Define Libvirt template
+type LibvirtTemplate struct {
+	Name      string `json:"Name,omitempty"`
+	Namespace string `json:"Namespace,omitempty"`
+}
+
+type NetworkInterface struct {
+
+	//Define parameter for netwok interfaces
+	Name        string            `json:"name,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	NetworkName string            `json:"network,omitempty"`
+	MTU         int               `json:"mtu,omitempty"`
+	Options     *InterfaceOptions `json:"options,omitempty"`
+}
+
+//VinoSpec Network option parameter definition
+type InterfaceOptions struct {
+	InterfaceName []string          `json:"interfaceName,omitempty"`
+	BridgeName    map[string]string `json:"bridgeName,omitempty"`
+	Vlan          int               `json:"vlan,omitempty"`
+}
+
+//Define disk drive for the nodes
+type DiskDrivesTemplate struct {
+	Name    string       `json:"name,omitempty"`
+	Type    string       `json:"type,omitempty"`
+	Path    string       `json:"path,omitempty"`
+	Options *DiskOptions `json:"options,omitempty"`
+}
+
+//Define disk size
+type DiskOptions struct {
+	SizeGB int  `json:"sizeGb,omitempty"`
+	Sparse bool `json:"sparse,omitempty"`
 }
 
 // VinoStatus defines the observed state of Vino
 type VinoStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true
