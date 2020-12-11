@@ -1,10 +1,11 @@
 - project:
     check:
       jobs:
-        - noop
+        -  airship-deploy-vino
     gate:
       jobs:
-        - noop
+        - airship-deploy-vino
     post:
       jobs:
         - airship-vino-upload-git-mirror
+        - airship-deploy-vino
