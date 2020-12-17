@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: libvirt-qemu
+data:
+  qemu.conf: |
+    stdio_handler = "file"
+    user = "libvirt-qemu"
+    group = "kvm"
+    security_driver = "none"

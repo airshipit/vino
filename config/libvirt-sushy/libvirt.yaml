@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: libvirt
+spec:
+  selector:
+    matchLabels:
+      kubernetes.io/os: linux
+  template:
+    metadata:
+      labels:
+        kubernetes.io/os: linux
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      containers:
+        - name: libvirt
+          command:
+            - /tmp/libvirt.sh
+          image: docker.io/openstackhelm/libvirt:ubuntu_xenial-20190903
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            readOnlyRootFilesystem: false
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: libvirt-bin
+              mountPath: /tmp/libvirt.sh
+              subPath: libvirt.sh
+              readOnly: true
+            - name: libvirt-etc
+              mountPath: /etc/libvirt/libvirtd.conf
+              subPath: libvirtd.conf
+            - name: libvirt-qemu
+              mountPath: /etc/libvirt/qemu.conf
+              subPath: qemu.conf
+            - mountPath: /lib/modules
+              name: libmodules
+              readOnly: true
+            - name: var-lib-libvirt
+              mountPath: /var/lib/libvirt
+              mountPropagation: Bidirectional
+            - name: var-lib-libvirt-images
+              mountPath: /var/lib/libvirt/images
+            - name: run
+              mountPath: /run
+            - name: dev
+              mountPath: /dev
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+            - name: logs
+              mountPath: /var/log/libvirt
+      volumes:
+        - name: pod-tmp
+          emptyDir: {}
+        - name: libvirt-bin
+          configMap:
+            name: libvirt-bin
+            defaultMode: 0555
+        - name: libvirt-etc
+          configMap:
+            name: libvirt-etc
+            defaultMode: 0444
+        - name: libvirt-qemu
+          configMap:
+            name: libvirt-qemu
+            defaultMode: 0444
+        - name: libmodules
+          hostPath:
+            path: /lib/modules
+        - name: var-lib-libvirt
+          hostPath:
+            path: /var/lib/libvirt
+        - name: var-lib-libvirt-images
+          hostPath:
+            path: /var/lib/libvirt/images
+        - name: run
+          hostPath:
+            path: /run
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: logs
+          hostPath:
+            path: /var/log/libvirt
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
