@@ -25,8 +25,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 
-	airshipv1 "vino/api/v1"
+	vinov1 "vino/api/v1"
 	"vino/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -40,7 +43,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = airshipv1.AddToScheme(scheme)
+	_ = vinov1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -60,6 +63,10 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
+		ClientDisableCacheFor: []client.Object{
+			&corev1.ConfigMap{},
+			&appsv1.DaemonSet{},
+		},
 		LeaderElectionID:   "c3bc287f.airshipit.org",
 	})
 	if err != nil {

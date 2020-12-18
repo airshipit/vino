@@ -1,0 +1,16 @@
+apiVersion: airship.airshipit.org/v1
+kind: Vino
+metadata:
+  name: vino
+spec:
+  daemonSetOptions:
+    namespacedName:
+      name: libvirt-template
+      namespace: default
+  nodeSelector:
+    matchLabels:
+      node-type: worker
+  configuration:
+    cpuExclude: 0-4,54-60
+    redfishCredentialSecret:
+      name: redfishSecret

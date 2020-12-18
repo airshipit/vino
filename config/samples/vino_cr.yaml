@@ -4,106 +4,10 @@ metadata:
   name: vino
   #  labels: ...
 spec:
-  nodeLabels:
+  nodeSelector:
+    matchLabels:
       node-type: worker
   configuration:
       cpuExclude: 0-4,54-60
       redfishCredentialSecret:
           name: redfishSecret
-networks:
- - name: management
-   subnet: 192.168.2.0/20
-   allocationStart: 192.168.2.10
-   allocationStop: 192.168.2.14 # docs should specify that the range should = number of vms (to permit future expansion over multiple vino crs etc)
-   routes:
-     - to: 10.0.0.0/24
-       via: $vino.nodebridgegw # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
-   dns_servers: ["135.188.34.124"]
- - name: mobility-gn
-   subnet: 169.0.0.0/24
-   routes:
-     - to: 0.0.0.0/0
-       via: 169.0.0.1
-   allocationStart: 169.0.0.10
-   allocationStop: 169.0.0.254
-nodes:
-  - name: master
-    labels:
-        - vm-flavor: master
-    count: 1
-    libvirtTemplateDefinition:
-        name: configmapfoothatsjinjaforworkers
-        namespace: foo
-    # actions the pod needs to take outside of applying the domain xml to libvirt:
-    networkInterfaces:
-      # vm bridge management link
-      - name: management
-        type: bridge
-        network: management
-        mtu: 1500
-        options:
-          bridgeName: vminfra-bridge
-      # bonded calico link
-      - name: mobility-gn
-        type: sriov-bond
-        network: mobility-gn
-        mtu: 9100
-        options:
-          # this is an 'open-ended' set of k/v pairs, validation is perfomed by vino rather than crd schema.
-          pf: [enp29s0f0,enp219s1f1]
-          vlan: 100
-          bond_mode: 802.3ad
-          bond_xmit_hash_policy: layer3+4
-          bond_miimon: 100
-      # standard non-bonded sriov-link
-      - name: mobility-foobar
-        type: sriov
-        network: mobility-foobar
-        mtu: 9100
-        options:
-          pf: enp29s0f0
-          vlan: 200
-    diskDrives:
-      - name: root
-        type: qcow2
-        path: /home/foobar/qemu.img
-        options:
-            sizeGb: 300
-            sparse: true
-  - name: worker-standard
-    labels:
-        - vm-flavor: worker-standard
-    count: 4
-    libvirtTemplateDefinition:
-        name: configmapfoothatsjinjaforworkers
-        namespace: foo
-    networkInterfaces:
-      - name: management
-        type: bridge
-        network: management
-        bridgeName: vminfra-bridge
-      - name: mobility-gn
-        type: sriov
-        network: mobility-gn
-        pf: enp2s0f0
-        vlan: 100
-#    ...
-#    ...
-status:
-    global:
-        libvirt: complete|failed
-        sushy?: complete|failed
-        domains: complete|failed
-        bmh: complete|failed
-        lastUpdated:
-    nodes:
-        - node1:
-            hypervisor:
-                state: complete|failed
-                lastUpdated: <TimeStamp>
-            domains:
-                state: complete|failed
-                lastUpdated: <TimeStamp>
-            bmh:
-                state: complete|failed
-            lastUpdated:
