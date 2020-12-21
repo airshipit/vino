@@ -1,5 +1,7 @@
 # Build the manager binary
-FROM golang:1.13 as builder
+FROM gcr.io/gcp-runtimes/go1-builder:1.13 as builder
+
+ENV PATH "/usr/local/go/bin:$PATH"
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -13,6 +15,7 @@ RUN go mod download
 COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
+
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go

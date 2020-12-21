@@ -1,6 +1,7 @@
-
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+# IMG ?= controller:latest
+IMG ?= quay.io/airshipit/vino
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -16,6 +17,11 @@ GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+
+# Docker proxy flags
+DOCKER_PROXY_FLAGS  := --build-arg http_proxy=$(HTTP_PROXY)
+DOCKER_PROXY_FLAGS  += --build-arg https_proxy=$(HTTPS_PROXY)
+DOCKER_PROXY_FLAGS  += --build-arg NO_PROXY=$(NO_PROXY)
 
 all: manager
 
@@ -61,8 +67,9 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test
-	docker build . -t ${IMG}
+# If DOCKER_PROXY_FLAGS values are empty, we are fine with that
+docker-build:
+	docker build ${DOCKER_PROXY_FLAGS} . -t ${IMG}
 
 # Push the docker image
 docker-push:
