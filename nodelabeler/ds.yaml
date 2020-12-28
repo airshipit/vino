@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vino-labeler
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: vino-labeler
+  template:
+    metadata:
+      labels:
+        name: vino-labeler
+    spec:
+      hostNetwork: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: labler
+        image: quay.io/airship/nodelabeler
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: NODE
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: VM_BRIDGE_INTERFACE
+            value: enp0s3 # hardcoded value, where do we want to obtain this from?
+      terminationGracePeriodSeconds: 30
