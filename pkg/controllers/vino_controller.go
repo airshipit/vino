@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 
-	vinov1 "vino/api/v1"
+	vinov1 "vino/pkg/api/v1"
 )
 
 const (
