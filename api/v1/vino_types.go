@@ -152,24 +152,13 @@ func init() {
 // VinoStatus defines the observed state of Vino
 type VinoStatus struct {
 	ConfigMapRef         corev1.ObjectReference `json:"configMapRef,omitempty"`
-	Conditions           []Condition            `json:"conditions,omitempty"`
+	Conditions           []metav1.Condition     `json:"conditions,omitempty"`
 	ConfigMapReady       bool                   `json:"configMapReady,omitempty"`
 	VirtualMachinesReady bool                   `json:"virtualMachinesReady,omitempty"`
 	NetworkingReady      bool                   `json:"networkingReady,omitempty"`
 	DaemonSetReady       bool                   `json:"daemonSetReady,omitempty"`
 }
 
-// Condition indicates operational status of VINO CR
-type Condition struct {
-	Status  corev1.ConditionStatus `json:"status,omitempty"`
-	Type    ConditionType          `json:"type,omitempty"`
-	Reason  string                 `json:"reason,omitempty"`
-	Message string                 `json:"message,omitempty"`
-}
-
-// ConditionType type of the condition
-type ConditionType string
-
 const (
-	ConditionTypeReady ConditionType = "Ready"
+	ConditionTypeReady string = "Ready"
 )
