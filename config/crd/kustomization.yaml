@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/airship.airshipit.org_vinoes.yaml
+- bases/bmh.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

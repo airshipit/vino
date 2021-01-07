@@ -25,6 +25,10 @@ const (
 	// the ConfigMap has succeeded.
 	ConditionTypeConfigMapReady string = "ConfigMapReady"
 
+	// ConditionTypeBMHReady represents the fact that the reconciliation of
+	// the BMH has succeeded.
+	ConditionTypeBMHReady string = "BMHReady"
+
 	// ConditionTypeDaemonSetReady represents the fact that the reconciliation of
 	// the DaemonSet has succeeded.
 	ConditionTypeDaemonSetReady string = "DaemonSetReady"

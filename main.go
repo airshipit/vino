@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	metal3 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +32,6 @@ import (
 
 	vinov1 "vino/pkg/api/v1"
 	"vino/pkg/controllers"
-	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -45,6 +45,12 @@ func init() {
 
 	_ = vinov1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
+
+	// Add Metal3 CRD
+	_ = metal3.AddToScheme(scheme)
+
+	// Add Kubernetes Coree??
+	_ = corev1.AddToScheme(scheme)
 }
 
 func main() {
