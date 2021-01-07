@@ -112,6 +112,29 @@ kube-system   storage-provisioner                         1/1     Running   0   
 vino-system   vino-controller-manager-788b994c74-sbf26    2/2     Running   0          25m
 ```
 
+#### Test basic functionality
+
+```
+# kubectl apply -f config/samples/vino_cr.yaml
+# kubect get pods
+# kubectl get ds
+```
+test with user provided template
+
+```
+# kubectl apply -f config/samples/daemonset_template.yaml
+# kubectl apply -f config/samples/vin_cr_daemonset_template.yaml
+# kubectl get pods
+# kubectl get ds
+```
+
+delete vino CR and make sure DaemonSet is deleted as well
+
+```
+# kubectl delete vino vino
+# kubectl get ds
+```
+
 ## Get in Touch
 
 For any questions on the ViNo, or other Airship projects, we encourage you to join the community on
