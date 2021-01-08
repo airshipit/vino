@@ -1,0 +1,23 @@
+- hosts: ubuntu-bionic
+  tasks:
+    - name: Run ensure-docker
+      include_role:
+        name: ensure-docker
+    - name: Install Dependent Packages
+      apt:
+        pkg:
+          - docker
+          - debconf
+          - make
+          - wget
+          - snapd
+      become: yes
+    - name:  Set up requirements for kubernetes
+      include_role:
+        name: clear-firewall
+    - name: Install kubernetes and Deploy Vino
+      shell: |
+         set -xe;
+         ./tools/deployment/deploy-vino.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
