@@ -50,7 +50,6 @@ const (
 // VinoReconciler reconciles a Vino object
 type VinoReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -58,9 +57,7 @@ type VinoReconciler struct {
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=vinoes/status,verbs=get;update;patch
 
 func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("vino", req.NamespacedName)
-
-	ctx = context.TODO()
+	logger := logr.FromContext(ctx)
 	vino := &vinov1.Vino{}
 	if err := r.Get(ctx, req.NamespacedName, vino); err != nil {
 		if apierror.IsNotFound(err) {
@@ -71,24 +68,23 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	var err error
-	if vino.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(vino, vinov1.VinoFinalizer) {
+	if !controllerutil.ContainsFinalizer(vino, vinov1.VinoFinalizer) {
 		logger.Info("adding finalizer to new vino object")
 		controllerutil.AddFinalizer(vino, vinov1.VinoFinalizer)
-		err = r.Update(ctx, vino)
-		if err != nil {
+		if err = r.Update(ctx, vino); err != nil {
+			logger.Error(err, "unable to register finalizer")
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{Requeue: true}, nil
 	}
 
 	defer func() {
-		if dErr := r.Status().Update(ctx, vino); dErr != nil {
+		if dErr := r.patchStatus(ctx, vino); dErr != nil {
 			if err != nil {
 				err = kerror.NewAggregate([]error{err, dErr})
 			}
 			err = dErr
+			logger.Error(err, "unable to patch status after reconciliation")
 		}
-		logger.Info("updated vino CR status")
 	}()
 
 	if !vino.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -107,7 +103,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
 		vino.Status.ConfigMapReady = false
-		return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 60}, err
+		return ctrl.Result{Requeue: true}, err
 	}
 	vino.Status.ConfigMapReady = true
 
@@ -123,7 +119,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
 		vino.Status.DaemonSetReady = false
-		return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 60}, err
+		return ctrl.Result{Requeue: true}, err
 	}
 	vino.Status.DaemonSetReady = true
 
@@ -133,9 +129,9 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 }
 
 func (r *VinoReconciler) ensureConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
-	logger := r.Log.WithValues("vino", name)
+	logger := logr.FromContext(ctx)
 
-	generatedCM, err := r.buildConfigMap(name, vino)
+	generatedCM, err := r.buildConfigMap(ctx, name, vino)
 	if err != nil {
 		return err
 	}
@@ -164,8 +160,9 @@ func (r *VinoReconciler) ensureConfigMap(ctx context.Context, name types.Namespa
 	return nil
 }
 
-func (r *VinoReconciler) buildConfigMap(name types.NamespacedName, vino *vinov1.Vino) (*corev1.ConfigMap, error) {
-	r.Log.Info("Generating new config map for vino object")
+func (r *VinoReconciler) buildConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) (
+	*corev1.ConfigMap, error) {
+	logr.FromContext(ctx).Info("Generating new config map for vino object")
 
 	data, err := yaml.Marshal(vino.Spec)
 	if err != nil {
@@ -184,7 +181,7 @@ func (r *VinoReconciler) buildConfigMap(name types.NamespacedName, vino *vinov1.
 }
 
 func (r *VinoReconciler) getCurrentConfigMap(ctx context.Context, vino *vinov1.Vino) (*corev1.ConfigMap, error) {
-	r.Log.Info("Getting current config map for vino object")
+	logr.FromContext(ctx).Info("Getting current config map for vino object")
 	cm := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      vino.Name,
@@ -202,7 +199,6 @@ func (r *VinoReconciler) getCurrentConfigMap(ctx context.Context, vino *vinov1.V
 
 func (r *VinoReconciler) setReadyStatus(vino *vinov1.Vino) {
 	if vino.Status.ConfigMapReady && vino.Status.DaemonSetReady {
-		r.Log.Info("All VINO components are in ready state, setting VINO CR to ready state")
 		readyCondition := metav1.Condition{
 			Status:             metav1.ConditionTrue,
 			Reason:             vinov1.ReconciliationSucceededReason,
@@ -212,6 +208,15 @@ func (r *VinoReconciler) setReadyStatus(vino *vinov1.Vino) {
 		}
 		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
 	}
+}
+
+func (r *VinoReconciler) patchStatus(ctx context.Context, vino *vinov1.Vino) error {
+	key := client.ObjectKeyFromObject(vino)
+	latest := &vinov1.Vino{}
+	if err := r.Client.Get(ctx, key, latest); err != nil {
+		return err
+	}
+	return r.Client.Status().Patch(ctx, vino, client.MergeFrom(latest))
 }
 
 func needsUpdate(generated, current *corev1.ConfigMap) bool {
@@ -229,7 +234,7 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino)
 		return err
 	}
 
-	r.decorateDaemonSet(ds, vino)
+	r.decorateDaemonSet(ctx, ds, vino)
 
 	existDS := &appsv1.DaemonSet{}
 	err = r.Get(ctx, types.NamespacedName{Name: ds.Name, Namespace: ds.Namespace}, existDS)
@@ -253,7 +258,7 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino)
 	return r.waitDaemonSet(ctx, ds)
 }
 
-func (r *VinoReconciler) decorateDaemonSet(ds *appsv1.DaemonSet, vino *vinov1.Vino) {
+func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
 	volume := "vino-spec"
 
 	ds.Spec.Template.Spec.NodeSelector = vino.Spec.NodeSelector.MatchLabels
@@ -287,7 +292,7 @@ func (r *VinoReconciler) decorateDaemonSet(ds *appsv1.DaemonSet, vino *vinov1.Vi
 			}
 		}
 		if !found {
-			r.Log.Info("volume mount with vino spec is not found",
+			logr.FromContext(ctx).Info("volume mount with vino spec is not found",
 				"vino instance", vino.Namespace+"/"+vino.Name,
 				"container name", c.Name,
 			)
@@ -310,7 +315,7 @@ func (r *VinoReconciler) decorateDaemonSet(ds *appsv1.DaemonSet, vino *vinov1.Vi
 }
 
 func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet) error {
-	logger := r.Log.WithValues(
+	logger := logr.FromContext(ctx).WithValues(
 		"daemonset", ds.Namespace+"/"+ds.Name)
 	for {
 		select {
@@ -342,7 +347,7 @@ func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet
 
 func (r *VinoReconciler) daemonSet(ctx context.Context, vino *vinov1.Vino) (*appsv1.DaemonSet, error) {
 	dsTemplate := vino.Spec.DaemonSetOptions.Template
-	logger := r.Log.WithValues("DaemonSetTemplate", &dsTemplate)
+	logger := logr.FromContext(ctx).WithValues("DaemonSetTemplate", dsTemplate)
 	cm := &corev1.ConfigMap{}
 
 	if dsTemplate == (vinov1.NamespacedName{}) {
