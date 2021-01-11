@@ -40,11 +40,11 @@ import (
 const (
 	DaemonSetTemplateDefaultDataKey = "template"
 
-	ContainerNameLibvirt       = "libvirt"
-	ConfigMapKeyVinoSpec       = "vino-spec"
+	ContainerNameLibvirt = "libvirt"
+	ConfigMapKeyVinoSpec = "vino-spec"
 
 	// TODO (kkalynovskyi) remove this, when moving to default libvirt template.
-	DefaultImageLibvirt        = "quay.io/teoyaomiqui/libvirt"
+	DefaultImageLibvirt = "quay.io/teoyaomiqui/libvirt"
 )
 
 // VinoReconciler reconciles a Vino object
@@ -184,8 +184,8 @@ func (r *VinoReconciler) getCurrentConfigMap(ctx context.Context, vino *vinov1.V
 	r.Log.Info("Getting current config map for vino object")
 	cm := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{
-		Name: vino.Name,
-		Namespace: vino.Namespace, 
+		Name:      vino.Name,
+		Namespace: vino.Namespace,
 	}, cm)
 	if err != nil {
 		if !apierror.IsNotFound(err) {
@@ -315,7 +315,8 @@ func (r *VinoReconciler) waitDaemonSet(timeout int, ds *appsv1.DaemonSet) error 
 					"error", err.Error())
 			} else {
 				logger.Info("checking daemonset status", "status", getDS.Status)
-				if getDS.Status.DesiredNumberScheduled == getDS.Status.NumberReady {
+				if getDS.Status.DesiredNumberScheduled == getDS.Status.NumberReady &&
+					getDS.Status.DesiredNumberScheduled != 0 {
 					logger.Info("daemonset is in ready status")
 					return nil
 				}

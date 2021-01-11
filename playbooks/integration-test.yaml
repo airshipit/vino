@@ -6,7 +6,6 @@
     - name: Install Dependent Packages
       apt:
         pkg:
-          - docker
           - debconf
           - make
           - wget
@@ -17,7 +16,9 @@
         name: clear-firewall
     - name: Install kubernetes and Deploy Vino
       shell: |
-         set -xe;
-         ./tools/deployment/deploy-vino.sh
+        set -xe;
+        ./tools/deployment/install-k8s.sh
+        ./tools/deployment/deploy-vino.sh
+        ./tools/deployment/test-cr.sh
       args:
         chdir: "{{ zuul.project.src_dir }}"

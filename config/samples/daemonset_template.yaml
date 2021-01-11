@@ -12,11 +12,11 @@ data:
     spec:
       selector:
         matchLabels:
-          kubernetes.io/os: linux
+          vino-test: cr-with-ds-template
       template:
         metadata:
           labels:
-            kubernetes.io/os: linux
+            vino-test: cr-with-ds-template
         spec:
           tolerations:
           - key: node-role.kubernetes.io/master
@@ -28,24 +28,12 @@ data:
             - name: libvirt
               command:
                 - /tmp/libvirt.sh
-              image: docker.io/openstackhelm/libvirt:ubuntu_xenial-20190903
+              image: quay.io/teoyaomiqui/libvirt
               securityContext:
                 privileged: true
                 runAsUser: 0
                 readOnlyRootFilesystem: false
               volumeMounts:
-                - name: pod-tmp
-                  mountPath: /tmp
-                - name: libvirt-bin
-                  mountPath: /tmp/libvirt.sh
-                  subPath: libvirt.sh
-                  readOnly: true
-                - name: libvirt-etc
-                  mountPath: /etc/libvirt/libvirtd.conf
-                  subPath: libvirtd.conf
-                - name: libvirt-qemu
-                  mountPath: /etc/libvirt/qemu.conf
-                  subPath: qemu.conf
                 - mountPath: /lib/modules
                   name: libmodules
                   readOnly: true
@@ -63,20 +51,6 @@ data:
                 - name: logs
                   mountPath: /var/log/libvirt
           volumes:
-            - name: pod-tmp
-              emptyDir: {}
-            - name: libvirt-bin
-              configMap:
-                name: libvirt-bin
-                defaultMode: 0555
-            - name: libvirt-etc
-              configMap:
-                name: libvirt-etc
-                defaultMode: 0444
-            - name: libvirt-qemu
-              configMap:
-                name: libvirt-qemu
-                defaultMode: 0444
             - name: libmodules
               hostPath:
                 path: /lib/modules

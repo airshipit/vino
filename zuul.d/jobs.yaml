@@ -10,6 +10,6 @@
         pass-to-parent: true
 - job:
     name: airship-deploy-vino
-    run: playbooks/deploy-k8s.yaml
+    run: playbooks/integration-test.yaml
     description: Deploys kubernetes and vino
     timeout: 9600
