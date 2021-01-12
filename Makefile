@@ -1,6 +1,7 @@
 # Image URL to use all building/pushing image targets
 # IMG ?= controller:latest
-IMG ?= quay.io/airshipit/vino
+CONTROLLER_IMG ?= quay.io/airshipit/vino
+NODE_LABELER_IMG ?= quay.io/airshipit/nodelabeler
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -64,14 +65,23 @@ vet:
 generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-# Build the docker image
+# Build the controller docker image
 # If DOCKER_PROXY_FLAGS values are empty, we are fine with that
-docker-build:
-	docker build ${DOCKER_PROXY_FLAGS} . -t ${IMG}
+docker-build-controller:
+	docker build ${DOCKER_PROXY_FLAGS} . -t ${CONTROLLER_IMG}
 
-# Push the docker image
-docker-push:
-	docker push ${IMG}
+# Build the nodelabeler docker image
+# If DOCKER_PROXY_FLAGS values are empty, we are fine with that
+docker-build-nodelabeler:
+	docker build -f nodelabeler/Dockerfile . ${DOCKER_PROXY_FLAGS} -t ${NODE_LABELER_IMG}
+
+# Push the controller docker image
+docker-push-controller:
+	docker push ${CONTROLLER_IMG}
+
+# Push the node_labeler docker image
+docker-push-node-labeler:
+	docker push ${NODE_LABELER_IMG}
 
 # find or download controller-gen
 # download controller-gen if necessary

@@ -1,4 +1,4 @@
-# Default base images for builder and release images, can be overriden during build
+# Default base images for builder and release images, can be overridden during build
 ARG BUILDER_IMAGE=gcr.io/gcp-runtimes/go1-builder:1.13
 ARG RELEASE_IMAGE=scratch
 

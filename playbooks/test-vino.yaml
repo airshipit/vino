@@ -66,4 +66,4 @@
     - name: Build Docker image
       make:
         chdir: "{{ zuul.project.src_dir }}"
-        target: docker-build
+        target: docker-build-controller

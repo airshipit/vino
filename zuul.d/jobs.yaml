@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 - job:
     name: airship-vino-upload-git-mirror
     parent: upload-git-mirror
@@ -8,13 +20,36 @@
       - name: git_mirror_credentials
         secret: airship_vino_airshipit_github_secret
         pass-to-parent: true
+
 - job:
     name: airship-deploy-vino
     run: playbooks/integration-test.yaml
     description: Deploys kubernetes and vino
     timeout: 9600
+
 - job:
     name: airship-vino-test-suite
     description: Install kube-builder and tests make functionality.
     run: playbooks/test-vino.yaml
     timeout: 9600
+
+- job:
+    name: airship-vino-build-images
+    run: playbooks/airship-vino-build-images.yaml
+    irrelevant-files: &noncodefiles
+      - ^certs/.*$
+      - ^docs/.*$
+      - ^.*\.md$
+      - ^\.github/.*$
+
+- job:
+    name: airship-vino-publish-images
+    parent: airship-vino-build-images
+    post-run: playbooks/airship-vino-publish-images.yaml
+    irrelevant-files: *noncodefiles
+    secrets:
+      - name: airship_vino_airshipit_quay_secret
+        secret: airship_vino_airshipit_quay_secret
+        pass-to-parent: true
+    vars:
+      image: quay.io/airshipit/vino

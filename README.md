@@ -91,7 +91,7 @@ Once your cluster is up and running, you'll need to build the ViNO image to use,
 operator on your cluster:
 
 ```
-# make docker-build
+# make docker-build-controller
 # make deploy
 ```
 
