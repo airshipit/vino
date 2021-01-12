@@ -2,10 +2,13 @@
     check:
       jobs:
         -  airship-deploy-vino
+        -  airship-vino-test-suite
     gate:
       jobs:
         - airship-deploy-vino
+        - airship-vino-test-suite
     post:
       jobs:
         - airship-vino-upload-git-mirror
         - airship-deploy-vino
+        - airship-vino-test-suite
