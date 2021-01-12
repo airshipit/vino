@@ -112,7 +112,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 	vino.Status.ConfigMapReady = true
 
-	err = r.ensureDaemonSet(ctx, req.NamespacedName, vino)
+	err = r.ensureDaemonSet(ctx, vino)
 	if err != nil {
 		err = fmt.Errorf("Could not reconcile Daemonset: %w", err)
 		readyCondition := metav1.Condition{
@@ -134,7 +134,6 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 }
 
 func (r *VinoReconciler) ensureConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
-
 	logger := r.Log.WithValues("vino", name)
 
 	generatedCM, err := r.buildConfigMap(name, vino)
@@ -225,8 +224,7 @@ func needsUpdate(generated, current *corev1.ConfigMap) bool {
 	return false
 }
 
-func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
-
+func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino) error {
 	ds, err := r.overrideDaemonSet(ctx, vino)
 	if err != nil {
 		return err
@@ -238,7 +236,11 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, name types.Namespa
 
 	r.decorateDaemonSet(ds, vino)
 
-	if err := applyRuntimeObject(ctx, types.NamespacedName{Name: ds.Name, Namespace: ds.Namespace}, ds, r.Client); err != nil {
+	if err := applyRuntimeObject(
+		ctx,
+		types.NamespacedName{Name: ds.Name, Namespace: ds.Namespace},
+		ds,
+		r.Client); err != nil {
 		return err
 	}
 
@@ -288,12 +290,13 @@ func (r *VinoReconciler) decorateDaemonSet(ds *appsv1.DaemonSet, vino *vinov1.Vi
 				"vino instance", vino.Namespace+"/"+vino.Name,
 				"container name", c.Name,
 			)
-			ds.Spec.Template.Spec.Containers[i].VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
-				MountPath: "/vino/spec",
-				Name:      volume,
-				ReadOnly:  true,
-				SubPath:   ConfigMapKeyVinoSpec,
-			})
+			ds.Spec.Template.Spec.Containers[i].VolumeMounts = append(
+				ds.Spec.Template.Spec.Containers[i].VolumeMounts, corev1.VolumeMount{
+					MountPath: "/vino/spec",
+					Name:      volume,
+					ReadOnly:  true,
+					SubPath:   ConfigMapKeyVinoSpec,
+				})
 		}
 	}
 }
@@ -377,10 +380,20 @@ func (r *VinoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *VinoReconciler) finalize(ctx context.Context, vino *vinov1.Vino) error {
 	// TODO aggregate errors instead
-	if err := r.Delete(ctx, &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: vino.Name, Namespace: vino.Namespace}}); err != nil {
+	if err := r.Delete(ctx,
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vino.Name, Namespace: vino.Namespace,
+			},
+		}); err != nil {
 		return err
 	}
-	if err := r.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: vino.Name, Namespace: vino.Namespace}}); err != nil {
+	if err := r.Delete(ctx,
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vino.Name, Namespace: vino.Namespace,
+			},
+		}); err != nil {
 		return err
 	}
 	controllerutil.RemoveFinalizer(vino, vinov1.VinoFinalizer)
@@ -396,7 +409,7 @@ func defaultDaemonSet(vino *vinov1.Vino) (ds *appsv1.DaemonSet) {
 
 	biDirectional := corev1.MountPropagationBidirectional
 
-	ds = &appsv1.DaemonSet{
+	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vino.Name,
 			Namespace: vino.Namespace,
@@ -522,7 +535,6 @@ func defaultDaemonSet(vino *vinov1.Vino) (ds *appsv1.DaemonSet) {
 			},
 		},
 	}
-	return
 }
 
 func applyRuntimeObject(ctx context.Context, key client.ObjectKey, obj client.Object, c client.Client) error {

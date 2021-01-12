@@ -15,6 +15,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"os"
@@ -32,7 +33,10 @@ import (
 )
 
 func main() {
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	log := logger.Named("nodelabeler")
 
 	nodeName, ok := os.LookupEnv("NODE")
@@ -67,16 +71,17 @@ func main() {
 		}
 		ifaceAddr := strings.Split(addrs[0].String(), "/")[0]
 		labels := map[string]string{
-			"airshipit.org/vino.nodebridgegw":  ifaceAddr,
+			"airshipit.org/vino.nodebridgegw": ifaceAddr,
 		}
+		ctx := context.Background()
 
-		node, err := clientset.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+		node, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 
 		for label, value := range labels {
-			err = addLabelToNode(clientset, node, label, value)
+			err = addLabelToNode(ctx, clientset, node, label, value)
 			if err != nil {
 				log.Fatal(err.Error())
 			}
@@ -86,7 +91,11 @@ func main() {
 	}
 }
 
-func addLabelToNode(clientset *kubernetes.Clientset, node *v1.Node, key string, value string) error {
+func addLabelToNode(
+	ctx context.Context,
+	clientset *kubernetes.Clientset,
+	node *v1.Node,
+	key, value string) error {
 	log.Info("Applying node label",
 		zap.String(key, value),
 	)
@@ -113,7 +122,7 @@ func addLabelToNode(clientset *kubernetes.Clientset, node *v1.Node, key string, 
 		zap.String("patch", string(patch)),
 	)
 
-	_, err = clientset.CoreV1().Nodes().Patch(node.Name, types.MergePatchType, patch)
+	_, err = clientset.CoreV1().Nodes().Patch(ctx, node.Name, types.MergePatchType, patch, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}

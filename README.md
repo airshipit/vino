@@ -138,5 +138,5 @@ delete vino CR and make sure DaemonSet is deleted as well
 ## Get in Touch
 
 For any questions on the ViNo, or other Airship projects, we encourage you to join the community on
-Slack/IRC or by participating in the mailing list. Please see this [Wiki](https://wiki.openstack.org/wiki/Airship#Get_in_Touch) for 
+Slack/IRC or by participating in the mailing list. Please see this [Wiki](https://wiki.openstack.org/wiki/Airship#Get_in_Touch) for
 contact information, and the community meeting schedules.
