@@ -25,6 +25,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierror "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -97,13 +98,15 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	err = r.ensureConfigMap(ctx, req.NamespacedName, vino)
 	if err != nil {
-		readyCondition := vinov1.Condition{
-			Status:  corev1.ConditionFalse,
-			Reason:  "Error has occurred while making sure that ConfigMap for VINO is in correct state",
-			Message: err.Error(),
-			Type:    vinov1.ConditionTypeReady,
+		err = fmt.Errorf("Could not reconcile ConfigMap: %w", err)
+		readyCondition := metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             vinov1.ReconciliationFailedReason,
+			Message:            err.Error(),
+			Type:               vinov1.ConditionTypeReady,
+			ObservedGeneration: vino.GetGeneration(),
 		}
-		r.setCondition(vino, readyCondition)
+		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
 		vino.Status.ConfigMapReady = false
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 60}, err
 	}
@@ -111,13 +114,15 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	err = r.ensureDaemonSet(ctx, req.NamespacedName, vino)
 	if err != nil {
-		readyCondition := vinov1.Condition{
-			Status:  corev1.ConditionFalse,
-			Reason:  "Error has occurred while making sure that VINO Daemonset is installed on kubernetes nodes",
-			Message: err.Error(),
-			Type:    vinov1.ConditionTypeReady,
+		err = fmt.Errorf("Could not reconcile Daemonset: %w", err)
+		readyCondition := metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             vinov1.ReconciliationFailedReason,
+			Message:            err.Error(),
+			Type:               vinov1.ConditionTypeReady,
+			ObservedGeneration: vino.GetGeneration(),
 		}
-		r.setCondition(vino, readyCondition)
+		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
 		vino.Status.DaemonSetReady = false
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 60}, err
 	}
@@ -200,13 +205,14 @@ func (r *VinoReconciler) getCurrentConfigMap(ctx context.Context, vino *vinov1.V
 func (r *VinoReconciler) setReadyStatus(vino *vinov1.Vino) {
 	if vino.Status.ConfigMapReady && vino.Status.DaemonSetReady {
 		r.Log.Info("All VINO components are in ready state, setting VINO CR to ready state")
-		readyCondition := vinov1.Condition{
-			Status:  corev1.ConditionTrue,
-			Reason:  "Networking, Virtual Machines, DaemonSet and ConfigMap is in ready state",
-			Message: "All VINO components are in ready state, setting VINO CR to ready state",
-			Type:    vinov1.ConditionTypeReady,
+		readyCondition := metav1.Condition{
+			Status:             metav1.ConditionTrue,
+			Reason:             vinov1.ReconciliationSucceededReason,
+			Message:            "All VINO components are in ready state, setting VINO CR to ready state",
+			Type:               vinov1.ConditionTypeReady,
+			ObservedGeneration: vino.GetGeneration(),
 		}
-		r.setCondition(vino, readyCondition)
+		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
 	}
 }
 
@@ -379,16 +385,6 @@ func (r *VinoReconciler) finalize(ctx context.Context, vino *vinov1.Vino) error 
 	}
 	controllerutil.RemoveFinalizer(vino, vinov1.VinoFinalizer)
 	return r.Update(ctx, vino)
-}
-
-func (r *VinoReconciler) setCondition(vino *vinov1.Vino, condition vinov1.Condition) {
-	for i, checkCondition := range vino.Status.Conditions {
-		if checkCondition.Type == condition.Type {
-			vino.Status.Conditions[i] = condition
-			return
-		}
-	}
-	vino.Status.Conditions = append([]vinov1.Condition{condition}, vino.Status.Conditions...)
 }
 
 func defaultDaemonSet(vino *vinov1.Vino) (ds *appsv1.DaemonSet) {

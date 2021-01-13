@@ -20,14 +20,14 @@ import (
 	"flag"
 	"os"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	corev1 "k8s.io/api/core/v1"
-	appsv1 "k8s.io/api/apps/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	vinov1 "vino/api/v1"
 	"vino/controllers"
@@ -67,7 +67,7 @@ func main() {
 			&corev1.ConfigMap{},
 			&appsv1.DaemonSet{},
 		},
-		LeaderElectionID:   "c3bc287f.airshipit.org",
+		LeaderElectionID: "c3bc287f.airshipit.org",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
