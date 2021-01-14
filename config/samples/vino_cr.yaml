@@ -1,12 +1,12 @@
 apiVersion: airship.airshipit.org/v1
 kind: Vino
 metadata:
-  name: vino
+  name: vino-test-cr
   #  labels: ...
 spec:
   nodeSelector:
     matchLabels:
-      node-type: worker
+      beta.kubernetes.io/os: linux
   configuration:
       cpuExclude: 0-4,54-60
       redfishCredentialSecret:
