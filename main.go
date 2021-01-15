@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	vinov1 "vino/api/v1"
-	"vino/controllers"
+	vinov1 "vino/pkg/api/v1"
+	"vino/pkg/controllers"
 	// +kubebuilder:scaffold:imports
 )
 

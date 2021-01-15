@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	airshipv1 "vino/api/v1"
+	airshipv1 "vino/pkg/api/v1"
 	// +kubebuilder:scaffold:imports
 )
 
