@@ -36,26 +36,12 @@
         password: "{{ airship_vino_airshipit_quay_secret.password }}"
         registry_url: "{{ image_repo }}"
 
-    - name: Push Image with Latest Tag
+    - name: Push controller image with latest tag
       make:
         chdir: "{{ zuul.project.src_dir }}"
-        params:
-          DOCKER_IMAGE_TAG: latest
-          PUBLISH: "true"
-          PROXY: "{{ proxy.http }}"
-          NO_PROXY: "{{ proxy.noproxy }}"
-          USE_PROXY: "{{ proxy.enabled | lower }}"
-          DOCKER_REGISTRY: "{{ image_repo }}"
-        target: images
+        target: docker-push-controller
 
-    - name: Push Image with Commit Tag
+    - name: Push nodelabeler image with latest tag
       make:
         chdir: "{{ zuul.project.src_dir }}"
-        params:
-          DOCKER_IMAGE_TAG: "{{ zuul.newrev }}"
-          PUBLISH: "true"
-          PROXY: "{{ proxy.http }}"
-          NO_PROXY: "{{ proxy.noproxy }}"
-          USE_PROXY: "{{ proxy.enabled | lower }}"
-          DOCKER_REGISTRY: "{{ image_repo }}"
-        target: images
+        target: docker-push-nodelabeler
