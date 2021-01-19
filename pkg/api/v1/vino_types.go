@@ -22,6 +22,12 @@ import (
 )
 
 const (
+	// VinoLabel is a vino base label
+	VinoLabel = "vino.airshipit.org"
+	// VinoLabelDSNameSelector used to label pods in daemon set to avoid collisions
+	VinoLabelDSNameSelector = VinoLabel + "/" + "cr-name"
+	// VinoLabelDSNamespaceSelector used to label pods in daemon set to avoid collisions
+	VinoLabelDSNamespaceSelector = VinoLabel + "/" + "cr-namespace"
 	// VinoFinalizer constant
 	VinoFinalizer = "vino.airshipit.org"
 )

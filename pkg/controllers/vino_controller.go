@@ -39,13 +39,12 @@ import (
 )
 
 const (
-	DaemonSetTemplateDefaultDataKey = "template"
+	DaemonSetTemplateDefaultDataKey   = "template"
+	DaemonSetTemplateDefaultName      = "vino-daemonset-template"
+	DaemonSetTemplateDefaultNamespace = "vino-system"
 
 	ContainerNameLibvirt = "libvirt"
 	ConfigMapKeyVinoSpec = "vino-spec"
-
-	// TODO (kkalynovskyi) remove this, when moving to default libvirt template.
-	DefaultImageLibvirt = "quay.io/teoyaomiqui/libvirt"
 )
 
 // VinoReconciler reconciles a Vino object
@@ -225,22 +224,22 @@ func needsUpdate(generated, current *corev1.ConfigMap) bool {
 }
 
 func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino) error {
-	ds, err := r.overrideDaemonSet(ctx, vino)
+	ds, err := r.daemonSet(ctx, vino)
 	if err != nil {
 		return err
 	}
 
-	if ds == nil {
-		ds = defaultDaemonSet(vino)
-	}
-
 	r.decorateDaemonSet(ds, vino)
 
-	if err := applyRuntimeObject(
-		ctx,
-		types.NamespacedName{Name: ds.Name, Namespace: ds.Namespace},
-		ds,
-		r.Client); err != nil {
+	existDS := &appsv1.DaemonSet{}
+	err = r.Get(ctx, types.NamespacedName{Name: ds.Name, Namespace: ds.Namespace}, existDS)
+	switch {
+	case apierror.IsNotFound(err):
+		err = r.Create(ctx, ds)
+	case err == nil:
+		err = r.Patch(ctx, ds, client.MergeFrom(existDS))
+	}
+	if err != nil {
 		return err
 	}
 
@@ -248,8 +247,10 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino)
 	// controller should watch for changes in daemonset to reconcile if it breaks, and change status
 	// of the vino object
 	// controlleruti.SetControllerReference(vino, ds, r.scheme)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 
-	return r.waitDaemonSet(30, ds)
+	return r.waitDaemonSet(ctx, ds)
 }
 
 func (r *VinoReconciler) decorateDaemonSet(ds *appsv1.DaemonSet, vino *vinov1.Vino) {
@@ -299,14 +300,17 @@ func (r *VinoReconciler) decorateDaemonSet(ds *appsv1.DaemonSet, vino *vinov1.Vi
 				})
 		}
 	}
+
+	// this will help avoid colisions if we have two vino CRs in the same namespace
+	ds.Spec.Selector.MatchLabels[vinov1.VinoLabelDSNameSelector] = vino.Name
+	ds.Spec.Template.ObjectMeta.Labels[vinov1.VinoLabelDSNameSelector] = vino.Name
+
+	ds.Spec.Selector.MatchLabels[vinov1.VinoLabelDSNamespaceSelector] = vino.Namespace
+	ds.Spec.Template.ObjectMeta.Labels[vinov1.VinoLabelDSNamespaceSelector] = vino.Namespace
 }
 
-func (r *VinoReconciler) waitDaemonSet(timeout int, ds *appsv1.DaemonSet) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-
+func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet) error {
 	logger := r.Log.WithValues(
-		"timeout in seconds", timeout,
 		"daemonset", ds.Namespace+"/"+ds.Name)
 	for {
 		select {
@@ -336,14 +340,15 @@ func (r *VinoReconciler) waitDaemonSet(timeout int, ds *appsv1.DaemonSet) error 
 	}
 }
 
-func (r *VinoReconciler) overrideDaemonSet(ctx context.Context, vino *vinov1.Vino) (*appsv1.DaemonSet, error) {
+func (r *VinoReconciler) daemonSet(ctx context.Context, vino *vinov1.Vino) (*appsv1.DaemonSet, error) {
 	dsTemplate := vino.Spec.DaemonSetOptions.Template
-	logger := r.Log.WithValues("DaemonSetTemplate", dsTemplate)
+	logger := r.Log.WithValues("DaemonSetTemplate", &dsTemplate)
 	cm := &corev1.ConfigMap{}
 
-	if dsTemplate.Name == "" || dsTemplate.Namespace == "" {
-		logger.Info("user provided vino DaemonSet template is empty or missing name or namespace")
-		return nil, nil
+	if dsTemplate == (vinov1.NamespacedName{}) {
+		logger.Info("using default configmap for daemonset template")
+		dsTemplate.Name = DaemonSetTemplateDefaultName
+		dsTemplate.Namespace = DaemonSetTemplateDefaultNamespace
 	}
 
 	err := r.Get(ctx, types.NamespacedName{
@@ -398,143 +403,6 @@ func (r *VinoReconciler) finalize(ctx context.Context, vino *vinov1.Vino) error 
 	}
 	controllerutil.RemoveFinalizer(vino, vinov1.VinoFinalizer)
 	return r.Update(ctx, vino)
-}
-
-func defaultDaemonSet(vino *vinov1.Vino) (ds *appsv1.DaemonSet) {
-	libvirtImage := DefaultImageLibvirt
-
-	if vino.Spec.DaemonSetOptions.LibvirtImage != "" {
-		libvirtImage = vino.Spec.DaemonSetOptions.LibvirtImage
-	}
-
-	biDirectional := corev1.MountPropagationBidirectional
-
-	return &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      vino.Name,
-			Namespace: vino.Namespace,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"vino-id": vino.Name,
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"vino-id": vino.Name,
-					},
-				},
-				Spec: corev1.PodSpec{
-					HostPID:     true,
-					HostNetwork: true,
-					HostIPC:     true,
-					Volumes: []corev1.Volume{
-						{
-							Name: "cgroup",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/sys/fs/cgroup",
-								},
-							},
-						},
-						{
-							Name: "dev",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/dev",
-								},
-							},
-						},
-						{
-							Name: "run",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/run",
-								},
-							},
-						},
-						{
-							Name: "var-lib-libvirt",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/libvirt",
-								},
-							},
-						},
-						{
-							Name: "var-lib-libvirt-images",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "var-lib-libvirt-images",
-								},
-							},
-						},
-						{
-							Name: "logs",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/log/libvirt",
-								},
-							},
-						},
-						{
-							Name: "libmodules",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/lib/modules",
-								},
-							},
-						},
-					},
-					Containers: []corev1.Container{
-						{
-							Name: ContainerNameLibvirt,
-							SecurityContext: &corev1.SecurityContext{
-								Privileged: &[]bool{true}[0],
-								RunAsUser:  &[]int64{0}[0],
-							},
-							Image:   libvirtImage,
-							Command: []string{"/tmp/libvirt.sh"},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									MountPath: "/lib/modules",
-									Name:      "libmodules",
-									ReadOnly:  true,
-								},
-								{
-									MountPath:        "/var/lib/libvirt",
-									Name:             "var-lib-libvirt",
-									MountPropagation: &biDirectional,
-								},
-								{
-									MountPath: "/var/lib/libvirt/images",
-									Name:      "var-lib-libvirt-images",
-								},
-								{
-									MountPath: "/run",
-									Name:      "run",
-								},
-								{
-									MountPath: "/dev",
-									Name:      "dev",
-								},
-								{
-									MountPath: "/sys/fs/cgroup",
-									Name:      "cgroup",
-								},
-								{
-									MountPath: "/var/log/libvirt",
-									Name:      "logs",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
 }
 
 func applyRuntimeObject(ctx context.Context, key client.ObjectKey, obj client.Object, c client.Client) error {
