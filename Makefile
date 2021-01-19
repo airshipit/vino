@@ -79,8 +79,8 @@ docker-build-nodelabeler:
 docker-push-controller:
 	docker push ${CONTROLLER_IMG}
 
-# Push the node_labeler docker image
-docker-push-node-labeler:
+# Push the nodelabeler docker image
+docker-push-nodelabeler:
 	docker push ${NODE_LABELER_IMG}
 
 # find or download controller-gen
