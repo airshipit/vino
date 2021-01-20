@@ -2,7 +2,7 @@
 
 set -ex
 
-: ${KUBE_VERSION:="v1.19.2"}
+: ${KUBE_VERSION:="v1.20.2"}
 : ${MINIKUBE_VERSION:="v1.16.0"}
 : ${UPSTREAM_DNS_SERVER:="8.8.4.4"}
 : ${DNS_DOMAIN:="cluster.local"}

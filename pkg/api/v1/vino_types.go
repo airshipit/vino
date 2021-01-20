@@ -18,6 +18,7 @@ package v1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -157,14 +158,30 @@ func init() {
 
 // VinoStatus defines the observed state of Vino
 type VinoStatus struct {
-	ConfigMapRef         corev1.ObjectReference `json:"configMapRef,omitempty"`
-	Conditions           []metav1.Condition     `json:"conditions,omitempty"`
-	ConfigMapReady       bool                   `json:"configMapReady,omitempty"`
-	VirtualMachinesReady bool                   `json:"virtualMachinesReady,omitempty"`
-	NetworkingReady      bool                   `json:"networkingReady,omitempty"`
-	DaemonSetReady       bool                   `json:"daemonSetReady,omitempty"`
+	ConfigMapRef corev1.ObjectReference `json:"configMapRef,omitempty"`
+	Conditions   []metav1.Condition     `json:"conditions,omitempty"`
 }
 
-const (
-	ConditionTypeReady string = "Ready"
-)
+// VinoProgressing registers progress toward reconciling the given Vino
+// by resetting the status to a progressing state.
+func VinoProgressing(v *Vino) {
+	v.Status.Conditions = []metav1.Condition{}
+	apimeta.SetStatusCondition(&v.Status.Conditions, metav1.Condition{
+		Status:             metav1.ConditionFalse,
+		Reason:             ProgressingReason,
+		Message:            "Reconciliation progressing",
+		Type:               ConditionTypeReady,
+		ObservedGeneration: v.GetGeneration(),
+	})
+}
+
+// VinoReady registers success reconciling the given Vino.
+func VinoReady(v *Vino) {
+	apimeta.SetStatusCondition(&v.Status.Conditions, metav1.Condition{
+		Status:             metav1.ConditionTrue,
+		Reason:             ReconciliationSucceededReason,
+		Message:            "Reconciliation succeeded",
+		Type:               ConditionTypeReady,
+		ObservedGeneration: v.GetGeneration(),
+	})
+}

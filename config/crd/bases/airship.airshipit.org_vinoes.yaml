@@ -236,8 +236,6 @@ spec:
                 - type
                 type: object
               type: array
-            configMapReady:
-              type: boolean
             configMapRef:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
@@ -296,12 +294,6 @@ spec:
                   description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                   type: string
               type: object
-            daemonSetReady:
-              type: boolean
-            networkingReady:
-              type: boolean
-            virtualMachinesReady:
-              type: boolean
           type: object
       type: object
   version: v1

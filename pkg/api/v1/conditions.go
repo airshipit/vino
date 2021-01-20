@@ -17,11 +17,25 @@ limitations under the License.
 package v1
 
 const (
-	// ReconciliationSucceededReason represents the fact that the reconciliation of
+	// ConditionTypeReady represents the fact that the reconciliation of
 	// the resource has succeeded.
+	ConditionTypeReady string = "Ready"
+
+	// ConditionTypeConfigMapReady represents the fact that the reconciliation of
+	// the ConfigMap has succeeded.
+	ConditionTypeConfigMapReady string = "ConfigMapReady"
+
+	// ConditionTypeDaemonSetReady represents the fact that the reconciliation of
+	// the DaemonSet has succeeded.
+	ConditionTypeDaemonSetReady string = "DaemonSetReady"
+
+	// ReconciliationSucceededReason represents the fact that reconciliation has succeeded.
 	ReconciliationSucceededReason string = "ReconciliationSucceeded"
 
-	// ReconciliationFailedReason represents the fact that the reconciliation of
-	// the resource has failed.
+	// ReconciliationFailedReason represents the fact that reconciliation has failed.
 	ReconciliationFailedReason string = "ReconciliationFailed"
+
+	// ProgressingReason represents the fact that the reconciliation of the
+	// resource is underway.
+	ProgressingReason string = "Progressing"
 )

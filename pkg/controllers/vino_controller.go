@@ -59,7 +59,9 @@ type VinoReconciler struct {
 func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := logr.FromContext(ctx)
 	vino := &vinov1.Vino{}
-	if err := r.Get(ctx, req.NamespacedName, vino); err != nil {
+	var err error
+
+	if err = r.Get(ctx, req.NamespacedName, vino); err != nil {
 		if apierror.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -67,7 +69,6 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	var err error
 	if !controllerutil.ContainsFinalizer(vino, vinov1.VinoFinalizer) {
 		logger.Info("adding finalizer to new vino object")
 		controllerutil.AddFinalizer(vino, vinov1.VinoFinalizer)
@@ -77,55 +78,76 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	defer func() {
-		if dErr := r.patchStatus(ctx, vino); dErr != nil {
-			if err != nil {
-				err = kerror.NewAggregate([]error{err, dErr})
-			}
-			err = dErr
-			logger.Error(err, "unable to patch status after reconciliation")
-		}
-	}()
-
 	if !vino.ObjectMeta.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.finalize(ctx, vino)
 	}
 
-	err = r.ensureConfigMap(ctx, req.NamespacedName, vino)
-	if err != nil {
-		err = fmt.Errorf("Could not reconcile ConfigMap: %w", err)
-		readyCondition := metav1.Condition{
-			Status:             metav1.ConditionFalse,
-			Reason:             vinov1.ReconciliationFailedReason,
-			Message:            err.Error(),
-			Type:               vinov1.ConditionTypeReady,
-			ObservedGeneration: vino.GetGeneration(),
+	readyCondition := apimeta.FindStatusCondition(vino.Status.Conditions, vinov1.ConditionTypeReady)
+	if readyCondition == nil || readyCondition.ObservedGeneration != vino.GetGeneration() {
+		vinov1.VinoProgressing(vino)
+		if err = r.patchStatus(ctx, vino); err != nil {
+			logger.Error(err, "unable to patch status after progressing")
+			return ctrl.Result{Requeue: true}, err
 		}
-		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
-		vino.Status.ConfigMapReady = false
+	}
+
+	err = r.reconcileConfigMap(ctx, req.NamespacedName, vino)
+	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
-	vino.Status.ConfigMapReady = true
 
-	err = r.ensureDaemonSet(ctx, vino)
+	err = r.reconcileDaemonSet(ctx, vino)
 	if err != nil {
-		err = fmt.Errorf("Could not reconcile Daemonset: %w", err)
-		readyCondition := metav1.Condition{
-			Status:             metav1.ConditionFalse,
-			Reason:             vinov1.ReconciliationFailedReason,
-			Message:            err.Error(),
-			Type:               vinov1.ConditionTypeReady,
-			ObservedGeneration: vino.GetGeneration(),
-		}
-		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
-		vino.Status.DaemonSetReady = false
 		return ctrl.Result{Requeue: true}, err
 	}
-	vino.Status.DaemonSetReady = true
 
-	r.setReadyStatus(vino)
+	vinov1.VinoReady(vino)
+	if err := r.patchStatus(ctx, vino); err != nil {
+		logger.Error(err, "unable to patch status after reconciliation")
+		return ctrl.Result{Requeue: true}, err
+	}
 	logger.Info("successfully reconciled VINO CR")
 	return ctrl.Result{}, nil
+}
+
+func (r *VinoReconciler) reconcileConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
+	logger := logr.FromContext(ctx)
+	err := r.ensureConfigMap(ctx, name, vino)
+	if err != nil {
+		err = fmt.Errorf("could not reconcile ConfigMap: %w", err)
+		apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             vinov1.ReconciliationFailedReason,
+			Message:            err.Error(),
+			Type:               vinov1.ConditionTypeReady,
+			ObservedGeneration: vino.GetGeneration(),
+		})
+		apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             vinov1.ReconciliationFailedReason,
+			Message:            err.Error(),
+			Type:               vinov1.ConditionTypeConfigMapReady,
+			ObservedGeneration: vino.GetGeneration(),
+		})
+		if patchStatusErr := r.patchStatus(ctx, vino); patchStatusErr != nil {
+			err = kerror.NewAggregate([]error{err, patchStatusErr})
+			logger.Error(err, "unable to patch status after ConfigMap reconciliation failed")
+		}
+		return err
+	}
+	apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
+		Status:             metav1.ConditionTrue,
+		Reason:             vinov1.ReconciliationSucceededReason,
+		Message:            "ConfigMap reconciled",
+		Type:               vinov1.ConditionTypeConfigMapReady,
+		ObservedGeneration: vino.GetGeneration(),
+	})
+	if err = r.patchStatus(ctx, vino); err != nil {
+		logger.Error(err, "unable to patch status after ConfigMap reconciliation succeeded")
+		return err
+	}
+
+	return nil
 }
 
 func (r *VinoReconciler) ensureConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
@@ -197,19 +219,6 @@ func (r *VinoReconciler) getCurrentConfigMap(ctx context.Context, vino *vinov1.V
 	return cm, nil
 }
 
-func (r *VinoReconciler) setReadyStatus(vino *vinov1.Vino) {
-	if vino.Status.ConfigMapReady && vino.Status.DaemonSetReady {
-		readyCondition := metav1.Condition{
-			Status:             metav1.ConditionTrue,
-			Reason:             vinov1.ReconciliationSucceededReason,
-			Message:            "All VINO components are in ready state, setting VINO CR to ready state",
-			Type:               vinov1.ConditionTypeReady,
-			ObservedGeneration: vino.GetGeneration(),
-		}
-		apimeta.SetStatusCondition(&vino.Status.Conditions, readyCondition)
-	}
-}
-
 func (r *VinoReconciler) patchStatus(ctx context.Context, vino *vinov1.Vino) error {
 	key := client.ObjectKeyFromObject(vino)
 	latest := &vinov1.Vino{}
@@ -226,6 +235,46 @@ func needsUpdate(generated, current *corev1.ConfigMap) bool {
 		}
 	}
 	return false
+}
+
+func (r *VinoReconciler) reconcileDaemonSet(ctx context.Context, vino *vinov1.Vino) error {
+	logger := logr.FromContext(ctx)
+	err := r.ensureDaemonSet(ctx, vino)
+	if err != nil {
+		err = fmt.Errorf("could not reconcile DaemonSet: %w", err)
+		apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             vinov1.ReconciliationFailedReason,
+			Message:            err.Error(),
+			Type:               vinov1.ConditionTypeReady,
+			ObservedGeneration: vino.GetGeneration(),
+		})
+		apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             vinov1.ReconciliationFailedReason,
+			Message:            err.Error(),
+			Type:               vinov1.ConditionTypeDaemonSetReady,
+			ObservedGeneration: vino.GetGeneration(),
+		})
+		if patchStatusErr := r.patchStatus(ctx, vino); patchStatusErr != nil {
+			err = kerror.NewAggregate([]error{err, patchStatusErr})
+			logger.Error(err, "unable to patch status after DaemonSet reconciliation failed")
+		}
+		return err
+	}
+	apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
+		Status:             metav1.ConditionTrue,
+		Reason:             vinov1.ReconciliationSucceededReason,
+		Message:            "DaemonSet reconciled",
+		Type:               vinov1.ConditionTypeDaemonSetReady,
+		ObservedGeneration: vino.GetGeneration(),
+	})
+	if err := r.patchStatus(ctx, vino); err != nil {
+		logger.Error(err, "unable to patch status after DaemonSet reconciliation succeeded")
+		return err
+	}
+
+	return nil
 }
 
 func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino) error {
@@ -335,10 +384,10 @@ func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet
 				logger.Info("checking daemonset status", "status", getDS.Status)
 				if getDS.Status.DesiredNumberScheduled == getDS.Status.NumberReady &&
 					getDS.Status.DesiredNumberScheduled != 0 {
-					logger.Info("daemonset is in ready status")
+					logger.Info("DaemonSet is in ready status")
 					return nil
 				}
-				logger.Info("daemonset is not in ready status, rechecking in 2 seconds")
+				logger.Info("DaemonSet is not in ready status, rechecking in 2 seconds")
 			}
 			time.Sleep(2 * time.Second)
 		}
