@@ -1,71 +1,65 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: daemonset-template
-data:
-  template: |
-    apiVersion: apps/v1
-    kind: DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+spec:
+  selector:
+    matchLabels:
+      vino-role: vino-builder
+  template:
+    metadata:
+      labels:
+        vino-role: vino-builder
     spec:
-      selector:
-        matchLabels:
-          vino-role: vino-builder
-      template:
-        metadata:
-          labels:
-            vino-role: vino-builder
-        spec:
-          tolerations:
-          - key: node-role.kubernetes.io/master
-            effect: NoSchedule
-          hostNetwork: true
-          hostPID: true
-          hostIPC: true
-          containers:
-            - name: libvirt
-              command:
-                - /tmp/libvirt.sh
-              image: quay.io/teoyaomiqui/libvirt
-              securityContext:
-                privileged: true
-                runAsUser: 0
-                readOnlyRootFilesystem: false
-              volumeMounts:
-                - mountPath: /lib/modules
-                  name: libmodules
-                  readOnly: true
-                - name: var-lib-libvirt
-                  mountPath: /var/lib/libvirt
-                  mountPropagation: Bidirectional
-                - name: var-lib-libvirt-images
-                  mountPath: /var/lib/libvirt/images
-                - name: run
-                  mountPath: /run
-                - name: dev
-                  mountPath: /dev
-                - name: cgroup
-                  mountPath: /sys/fs/cgroup
-                - name: logs
-                  mountPath: /var/log/libvirt
-          volumes:
-            - name: libmodules
-              hostPath:
-                path: /lib/modules
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      containers:
+        - name: libvirt
+          command:
+            - /tmp/libvirt.sh
+          image: quay.io/teoyaomiqui/libvirt
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            readOnlyRootFilesystem: false
+          volumeMounts:
+            - mountPath: /lib/modules
+              name: libmodules
+              readOnly: true
             - name: var-lib-libvirt
-              hostPath:
-                path: /var/lib/libvirt
+              mountPath: /var/lib/libvirt
+              mountPropagation: Bidirectional
             - name: var-lib-libvirt-images
-              hostPath:
-                path: /var/lib/libvirt/images
+              mountPath: /var/lib/libvirt/images
             - name: run
-              hostPath:
-                path: /run
+              mountPath: /run
             - name: dev
-              hostPath:
-                path: /dev
-            - name: logs
-              hostPath:
-                path: /var/log/libvirt
+              mountPath: /dev
             - name: cgroup
-              hostPath:
-                path: /sys/fs/cgroup
+              mountPath: /sys/fs/cgroup
+            - name: logs
+              mountPath: /var/log/libvirt
+      volumes:
+        - name: libmodules
+          hostPath:
+            path: /lib/modules
+        - name: var-lib-libvirt
+          hostPath:
+            path: /var/lib/libvirt
+        - name: var-lib-libvirt-images
+          hostPath:
+            path: /var/lib/libvirt/images
+        - name: run
+          hostPath:
+            path: /run
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: logs
+          hostPath:
+            path: /var/log/libvirt
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
