@@ -132,9 +132,9 @@ type DiskOptions struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // Vino is the Schema for the vinoes API
-// +kubebuilder:subresource:status
 type Vino struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

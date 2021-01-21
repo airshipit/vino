@@ -8,6 +8,7 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 TOOLBINDIR          := tools/bin
 
+API_REF_GEN_VERSION = v0.3.0
 CONTROLLER_GEN_VERSION = v0.3.0
 
 # linting
@@ -29,7 +30,7 @@ DOCKER_PROXY_FLAGS  += --build-arg NO_PROXY=$(NO_PROXY)
 all: manager
 
 # Run tests
-test: generate fmt vet manifests lint
+test: generate fmt vet manifests lint api-docs
 	go test ./... -coverprofile cover.out
 
 # Build manager binary
@@ -84,6 +85,26 @@ docker-push-controller:
 # Push the nodelabeler docker image
 docker-push-nodelabeler:
 	docker push ${NODE_LABELER_IMG}
+
+# Generate API reference documentation
+api-docs: gen-crd-api-reference-docs
+	$(API_REF_GEN) -api-dir=./pkg/api/v1 -config=./hack/api-docs/config.json -template-dir=./hack/api-docs/template -out-file=./docs/api/vino.md
+
+API_REF_GEN=$(GOBIN)/gen-crd-api-reference-docs
+
+# Find or download gen-crd-api-reference-docs
+gen-crd-api-reference-docs:
+	@{ \
+	if ! which $(API_REF_GEN);\
+	then\
+		set -e ;\
+		API_REF_GEN_TMP_DIR=$$(mktemp -d) ;\
+		cd $$API_REF_GEN_TMP_DIR ;\
+		go mod init tmp ;\
+		go get github.com/ahmetb/gen-crd-api-reference-docs@$(API_REF_GEN_VERSION) ;\
+		rm -rf $$API_REF_GEN_TMP_DIR ;\
+	fi;\
+	}
 
 CONTROLLER_GEN:=$(GOBIN)/controller-gen
 
