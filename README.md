@@ -116,14 +116,6 @@ vino-system   vino-controller-manager-788b994c74-sbf26    2/2     Running   0   
 
 ```
 # kubectl apply -f config/samples/vino_cr.yaml
-# kubect get pods
-# kubectl get ds
-```
-test with user provided template
-
-```
-# kubectl apply -f config/samples/daemonset_template.yaml
-# kubectl apply -f config/samples/vin_cr_daemonset_template.yaml
 # kubectl get pods
 # kubectl get ds
 ```
@@ -131,8 +123,9 @@ test with user provided template
 delete vino CR and make sure DaemonSet is deleted as well
 
 ```
-# kubectl delete vino vino
+# kubectl delete vino vino-test-cr
 # kubectl get ds
+# kubectl get cm
 ```
 
 ## Get in Touch
