@@ -65,7 +65,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if apierror.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		logger.Error(err, "Failed to get vino CR")
+		err = fmt.Errorf("failed to get vino CR: %w", err)
 		return ctrl.Result{}, err
 	}
 
@@ -73,7 +73,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		logger.Info("adding finalizer to new vino object")
 		controllerutil.AddFinalizer(vino, vinov1.VinoFinalizer)
 		if err = r.Update(ctx, vino); err != nil {
-			logger.Error(err, "unable to register finalizer")
+			err = fmt.Errorf("unable to register finalizer: %w", err)
 			return ctrl.Result{}, err
 		}
 	}
@@ -86,7 +86,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	if readyCondition == nil || readyCondition.ObservedGeneration != vino.GetGeneration() {
 		vinov1.VinoProgressing(vino)
 		if err = r.patchStatus(ctx, vino); err != nil {
-			logger.Error(err, "unable to patch status after progressing")
+			err = fmt.Errorf("unable to patch status after progressing: %w", err)
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
@@ -103,7 +103,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	vinov1.VinoReady(vino)
 	if err := r.patchStatus(ctx, vino); err != nil {
-		logger.Error(err, "unable to patch status after reconciliation")
+		err = fmt.Errorf("unable to patch status after reconciliation: %w", err)
 		return ctrl.Result{Requeue: true}, err
 	}
 	logger.Info("successfully reconciled VINO CR")
@@ -111,7 +111,6 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 }
 
 func (r *VinoReconciler) reconcileConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
-	logger := logr.FromContext(ctx)
 	err := r.ensureConfigMap(ctx, name, vino)
 	if err != nil {
 		err = fmt.Errorf("could not reconcile ConfigMap: %w", err)
@@ -131,7 +130,7 @@ func (r *VinoReconciler) reconcileConfigMap(ctx context.Context, name types.Name
 		})
 		if patchStatusErr := r.patchStatus(ctx, vino); patchStatusErr != nil {
 			err = kerror.NewAggregate([]error{err, patchStatusErr})
-			logger.Error(err, "unable to patch status after ConfigMap reconciliation failed")
+			err = fmt.Errorf("unable to patch status after ConfigMap reconciliation failed: %w", err)
 		}
 		return err
 	}
@@ -143,7 +142,7 @@ func (r *VinoReconciler) reconcileConfigMap(ctx context.Context, name types.Name
 		ObservedGeneration: vino.GetGeneration(),
 	})
 	if err = r.patchStatus(ctx, vino); err != nil {
-		logger.Error(err, "unable to patch status after ConfigMap reconciliation succeeded")
+		err = fmt.Errorf("unable to patch status after ConfigMap reconciliation succeeded: %w", err)
 		return err
 	}
 
@@ -238,7 +237,6 @@ func needsUpdate(generated, current *corev1.ConfigMap) bool {
 }
 
 func (r *VinoReconciler) reconcileDaemonSet(ctx context.Context, vino *vinov1.Vino) error {
-	logger := logr.FromContext(ctx)
 	err := r.ensureDaemonSet(ctx, vino)
 	if err != nil {
 		err = fmt.Errorf("could not reconcile DaemonSet: %w", err)
@@ -258,7 +256,7 @@ func (r *VinoReconciler) reconcileDaemonSet(ctx context.Context, vino *vinov1.Vi
 		})
 		if patchStatusErr := r.patchStatus(ctx, vino); patchStatusErr != nil {
 			err = kerror.NewAggregate([]error{err, patchStatusErr})
-			logger.Error(err, "unable to patch status after DaemonSet reconciliation failed")
+			err = fmt.Errorf("unable to patch status after DaemonSet reconciliation failed: %w", err)
 		}
 		return err
 	}
@@ -270,7 +268,7 @@ func (r *VinoReconciler) reconcileDaemonSet(ctx context.Context, vino *vinov1.Vi
 		ObservedGeneration: vino.GetGeneration(),
 	})
 	if err := r.patchStatus(ctx, vino); err != nil {
-		logger.Error(err, "unable to patch status after DaemonSet reconciliation succeeded")
+		err = fmt.Errorf("unable to patch status after DaemonSet reconciliation succeeded: %w", err)
 		return err
 	}
 
