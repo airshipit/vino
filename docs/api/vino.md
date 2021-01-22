@@ -218,6 +218,160 @@ bool
 </table>
 </div>
 </div>
+<h3 id="airship.airshipit.org/v1.IPPool">IPPool
+</h3>
+<p>IPPool is the Schema for the ippools API</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.IPPoolSpec">
+IPPoolSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>subnet</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>ranges</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.Range">
+[]Range
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>allocatedIPs</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.IPPoolStatus">
+IPPoolStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="airship.airshipit.org/v1.IPPoolSpec">IPPoolSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.IPPool">IPPool</a>)
+</p>
+<p>IPPool tracks allocation ranges and statuses within a specific
+subnet IPv4 or IPv6 subnet.  It has a set of ranges of IPs
+within the subnet from which IPs can be allocated by IPAM,
+and a set of IPs that are currently allocated already.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>subnet</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>ranges</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.Range">
+[]Range
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>allocatedIPs</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="airship.airshipit.org/v1.IPPoolStatus">IPPoolStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.IPPool">IPPool</a>)
+</p>
+<p>IPPoolStatus defines the observed state of IPPool</p>
 <h3 id="airship.airshipit.org/v1.NamespacedName">NamespacedName
 </h3>
 <p>
@@ -540,6 +694,47 @@ NetworkInterface
 <a href="#airship.airshipit.org/v1.DiskDrivesTemplate">
 DiskDrivesTemplate
 </a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="airship.airshipit.org/v1.Range">Range
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.IPPoolSpec">IPPoolSpec</a>)
+</p>
+<p>Range has (inclusive) bounds within a subnet from which IPs can be allocated</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>start</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>stop</code><br>
+<em>
+string
 </em>
 </td>
 <td>

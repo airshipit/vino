@@ -13,6 +13,7 @@ function vinoDebugInfo () {
 }
 
 kubectl apply -f config/samples/vino_cr.yaml
+kubectl apply -f config/samples/ippool.yaml
 
 # Remove logs collection from here, when we will have zuul collect logs job
 until [[ $(kubectl get vino vino-test-cr 2>/dev/null) ]]; do

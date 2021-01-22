@@ -18,6 +18,8 @@ import (
 	"math"
 	"testing"
 
+	vinov1 "vino/pkg/api/v1"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,53 +27,53 @@ import (
 func TestAllocateIP(t *testing.T) {
 	tests := []struct {
 		name, subnet, expectedErr string
-		subnetRange               Range
+		subnetRange               vinov1.Range
 	}{
 		{
 			name:        "success ipv4",
 			subnet:      "10.0.0.0/16",
-			subnetRange: Range{"10.0.1.0", "10.0.1.9"},
+			subnetRange: vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"},
 		},
 		{
 			name:        "success ipv6",
 			subnet:      "2600:1700:b030:0000::/72",
-			subnetRange: Range{"2600:1700:b030:0000::", "2600:1700:b030:0009::"},
+			subnetRange: vinov1.Range{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:0009::"},
 		},
 		{
 			name:        "error subnet not allocated ipv4",
 			subnet:      "10.0.0.0/20",
-			subnetRange: Range{"10.0.1.0", "10.0.1.9"},
+			subnetRange: vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"},
 			expectedErr: "IPAM subnet 10.0.0.0/20 not allocated",
 		},
 		{
 			name:        "error subnet not allocated ipv6",
 			subnet:      "2600:1700:b030:0000::/80",
-			subnetRange: Range{"2600:1700:b030:0000::", "2600:1700:b030:0009::"},
+			subnetRange: vinov1.Range{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:0009::"},
 			expectedErr: "IPAM subnet 2600:1700:b030:0000::/80 not allocated",
 		},
 		{
 			name:        "error range not allocated ipv4",
 			subnet:      "10.0.0.0/16",
-			subnetRange: Range{"10.0.2.0", "10.0.2.9"},
+			subnetRange: vinov1.Range{Start: "10.0.2.0", Stop: "10.0.2.9"},
 			expectedErr: "IPAM range [10.0.2.0,10.0.2.9] in subnet 10.0.0.0/16 is not allocated",
 		},
 		{
 			name:        "error range not allocated ipv6",
 			subnet:      "2600:1700:b030:0000::/72",
-			subnetRange: Range{"2600:1700:b030:0000::", "2600:1700:b030:1111::"},
+			subnetRange: vinov1.Range{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:1111::"},
 			expectedErr: "IPAM range [2600:1700:b030:0000::,2600:1700:b030:1111::] " +
 				"in subnet 2600:1700:b030:0000::/72 is not allocated",
 		},
 		{
 			name:        "error range exhausted ipv4",
 			subnet:      "192.168.0.0/1",
-			subnetRange: Range{"192.168.0.0", "192.168.0.0"},
+			subnetRange: vinov1.Range{Start: "192.168.0.0", Stop: "192.168.0.0"},
 			expectedErr: "IPAM range [192.168.0.0,192.168.0.0] in subnet 192.168.0.0/1 is exhausted",
 		},
 		{
 			name:        "error range exhausted ipv6",
 			subnet:      "2600:1700:b031:0000::/64",
-			subnetRange: Range{"2600:1700:b031:0000::", "2600:1700:b031:0000::"},
+			subnetRange: vinov1.Range{Start: "2600:1700:b031:0000::", Stop: "2600:1700:b031:0000::"},
 			expectedErr: "IPAM range [2600:1700:b031:0000::,2600:1700:b031:0000::] " +
 				"in subnet 2600:1700:b031:0000::/64 is exhausted",
 		},
@@ -83,17 +85,21 @@ func TestAllocateIP(t *testing.T) {
 			ipammer := NewIpam()
 
 			// Pre-populate IPAM with some precondition test data
-			err := ipammer.AddSubnetRange("10.0.0.0/16", Range{"10.0.1.0", "10.0.1.9"})
+			err := ipammer.AddSubnetRange("10.0.0.0/16", vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"})
 			require.NoError(t, err)
-			err = ipammer.AddSubnetRange("2600:1700:b030:0000::/72", Range{"2600:1700:b030:0000::", "2600:1700:b030:0009::"})
+			err = ipammer.AddSubnetRange("2600:1700:b030:0000::/72",
+				vinov1.Range{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:0009::"})
 			require.NoError(t, err)
-			err = ipammer.AddSubnetRange("192.168.0.0/1", Range{"192.168.0.0", "192.168.0.0"})
+			err = ipammer.AddSubnetRange("192.168.0.0/1",
+				vinov1.Range{Start: "192.168.0.0", Stop: "192.168.0.0"})
 			require.NoError(t, err)
-			err = ipammer.AddSubnetRange("2600:1700:b031:0000::/64", Range{"2600:1700:b031:0000::", "2600:1700:b031:0000::"})
+			err = ipammer.AddSubnetRange("2600:1700:b031:0000::/64",
+				vinov1.Range{Start: "2600:1700:b031:0000::", Stop: "2600:1700:b031:0000::"})
 			require.NoError(t, err)
-			_, err = ipammer.AllocateIP("192.168.0.0/1", Range{"192.168.0.0", "192.168.0.0"})
+			_, err = ipammer.AllocateIP("192.168.0.0/1", vinov1.Range{Start: "192.168.0.0", Stop: "192.168.0.0"})
 			require.NoError(t, err)
-			_, err = ipammer.AllocateIP("2600:1700:b031:0000::/64", Range{"2600:1700:b031:0000::", "2600:1700:b031:0000::"})
+			_, err = ipammer.AllocateIP("2600:1700:b031:0000::/64",
+				vinov1.Range{Start: "2600:1700:b031:0000::", Stop: "2600:1700:b031:0000::"})
 			require.NoError(t, err)
 			ip, err := ipammer.AllocateIP(tt.subnet, tt.subnetRange)
 			if tt.expectedErr != "" {
@@ -108,22 +114,67 @@ func TestAllocateIP(t *testing.T) {
 	}
 }
 
+func TestNewRange(t *testing.T) {
+	tests := []struct {
+		name, start, stop, expectedErr string
+	}{
+		{
+			name:        "success",
+			start:       "10.0.0.1",
+			stop:        "10.0.0.2",
+			expectedErr: "",
+		},
+		{
+			name:        "error stop less than start",
+			start:       "10.0.0.2",
+			stop:        "10.0.0.1",
+			expectedErr: "is invalid",
+		},
+		{
+			name:        "error bad start",
+			start:       "10.0.0.2.x",
+			stop:        "10.0.0.1",
+			expectedErr: "is invalid",
+		},
+		{
+			name:        "error bad stop",
+			start:       "10.0.0.2",
+			stop:        "10.0.0.1.x",
+			expectedErr: "is invalid",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := NewRange(tt.start, tt.stop)
+			if tt.expectedErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, r.Start, tt.start)
+				assert.Equal(t, r.Stop, tt.stop)
+			}
+		})
+	}
+}
+
 // Test some error handling that is not captured by TestAllocateIP
 func TestAddSubnetRange(t *testing.T) {
 	tests := []struct {
 		name, subnet, expectedErr string
-		subnetRange               Range
+		subnetRange               vinov1.Range
 	}{
 		{
 			name:        "success",
 			subnet:      "10.0.0.0/16",
-			subnetRange: Range{"10.0.2.0", "10.0.2.9"},
+			subnetRange: vinov1.Range{Start: "10.0.2.0", Stop: "10.0.2.9"},
 			expectedErr: "",
 		},
 		{
 			name:        "error range already exists",
 			subnet:      "10.0.0.0/16",
-			subnetRange: Range{"10.0.1.0", "10.0.1.9"},
+			subnetRange: vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"},
 			expectedErr: "IPAM range [10.0.1.0,10.0.1.9] in subnet 10.0.0.0/16 overlaps",
 		},
 		// TODO: check for partially overlapping ranges and subnets
@@ -135,7 +186,7 @@ func TestAddSubnetRange(t *testing.T) {
 			ipammer := NewIpam()
 
 			// Pre-populate IPAM with some precondition test data
-			err := ipammer.AddSubnetRange("10.0.0.0/16", Range{"10.0.1.0", "10.0.1.9"})
+			err := ipammer.AddSubnetRange("10.0.0.0/16", vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"})
 			require.NoError(t, err)
 			err = ipammer.AddSubnetRange(tt.subnet, tt.subnetRange)
 			if tt.expectedErr != "" {
@@ -151,33 +202,33 @@ func TestFindFreeIPInRange(t *testing.T) {
 	tests := []struct {
 		name        string
 		subnet      string
-		subnetRange Range
+		subnetRange vinov1.Range
 		out         string
 		expectedErr string
 	}{
 		{
 			name:        "ip available IPv4",
 			subnet:      "10.0.0.0/16",
-			subnetRange: Range{"10.0.1.0", "10.0.1.10"},
+			subnetRange: vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.10"},
 			out:         "10.0.1.0",
 		},
 		{
 			name:        "ip unavailable IPv4",
 			subnet:      "10.0.0.0/16",
-			subnetRange: Range{"10.0.2.0", "10.0.2.0"},
+			subnetRange: vinov1.Range{Start: "10.0.2.0", Stop: "10.0.2.0"},
 			out:         "",
 			expectedErr: "IPAM range [10.0.2.0,10.0.2.0] in subnet 10.0.0.0/16 is exhausted",
 		},
 		{
 			name:        "ip available IPv6",
 			subnet:      "2600:1700:b030:0000::/64",
-			subnetRange: Range{"2600:1700:b030:1001::", "2600:1700:b030:1009::"},
+			subnetRange: vinov1.Range{Start: "2600:1700:b030:1001::", Stop: "2600:1700:b030:1009::"},
 			out:         "2600:1700:b030:1001::",
 		},
 		{
 			name:        "ip unavailable IPv6",
 			subnet:      "2600:1700:b031::/64",
-			subnetRange: Range{"2600:1700:b031::", "2600:1700:b031::"},
+			subnetRange: vinov1.Range{Start: "2600:1700:b031::", Stop: "2600:1700:b031::"},
 			expectedErr: "IPAM range [2600:1700:b031::,2600:1700:b031::] " +
 				"in subnet 2600:1700:b031::/64 is exhausted",
 		},
@@ -186,14 +237,14 @@ func TestFindFreeIPInRange(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			ippool := IPPool{
+			ippool := vinov1.IPPoolSpec{
 				Subnet: tt.subnet,
 				// One available and one unavailable range each for ipv4/6
-				Ranges: []Range{
-					{"10.0.1.0", "10.0.1.10"},
-					{"10.0.2.0", "10.0.2.0"},
-					{"2600:1700:b030:1001::", "2600:1700:b030:1009::"},
-					{"2600:1700:b031::", "2600:1700:b031::"},
+				Ranges: []vinov1.Range{
+					{Start: "10.0.1.0", Stop: "10.0.1.10"},
+					{Start: "10.0.2.0", Stop: "10.0.2.0"},
+					{Start: "2600:1700:b030:1001::", Stop: "2600:1700:b030:1009::"},
+					{Start: "2600:1700:b031::", Stop: "2600:1700:b031::"},
 				},
 				AllocatedIPs: []string{"10.0.2.0", "2600:1700:b031::"},
 			}

@@ -16,6 +16,8 @@ package ipam
 
 import (
 	"fmt"
+
+	vinov1 "vino/pkg/api/v1"
 )
 
 // ErrSubnetNotAllocated returned if the subnet is not registered in IPAM
@@ -23,23 +25,28 @@ type ErrSubnetNotAllocated struct {
 	Subnet string
 }
 
+// ErrSubnetRangeInvalid returned if a requested subnet's range is not valid
+type ErrSubnetRangeInvalid struct {
+	SubnetRange vinov1.Range
+}
+
 // ErrSubnetRangeOverlapsWithExistingRange returned if the subnet's range
 // overlaps (partially or completely) with an already added range in that subnet
 type ErrSubnetRangeOverlapsWithExistingRange struct {
 	Subnet      string
-	SubnetRange Range
+	SubnetRange vinov1.Range
 }
 
 // ErrSubnetRangeNotAllocated returned if the subnet's range is not registered in IPAM
 type ErrSubnetRangeNotAllocated struct {
 	Subnet      string
-	SubnetRange Range
+	SubnetRange vinov1.Range
 }
 
 // ErrSubnetRangeExhausted returned if the subnet's range has no unallocated IPs
 type ErrSubnetRangeExhausted struct {
 	Subnet      string
-	SubnetRange Range
+	SubnetRange vinov1.Range
 }
 
 // ErrInvalidIPAddress returned if an IP address string is malformed
@@ -54,6 +61,11 @@ type ErrNotSupported struct {
 
 func (e ErrSubnetNotAllocated) Error() string {
 	return fmt.Sprintf("IPAM subnet %s not allocated", e.Subnet)
+}
+
+func (e ErrSubnetRangeInvalid) Error() string {
+	return fmt.Sprintf("IPAM range [%s,%s] is invalid",
+		e.SubnetRange.Start, e.SubnetRange.Stop)
 }
 
 func (e ErrSubnetRangeOverlapsWithExistingRange) Error() string {

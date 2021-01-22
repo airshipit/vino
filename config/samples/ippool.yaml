@@ -1,0 +1,15 @@
+apiVersion: airship.airshipit.org/v1
+kind: IPPool
+metadata:
+  name: ippool-sample
+spec:
+  subnet: 10.0.0.0/16
+  ranges:
+    - start: 10.0.0.1
+      stop:  10.0.0.9
+    - start: 10.0.1.1
+      stop:  10.0.1.9
+  allocatedIPs:
+    - 10.0.0.1
+    - 10.0.0.2
+    - 10.0.1.1
