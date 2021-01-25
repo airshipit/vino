@@ -85,6 +85,29 @@ development purposes.
 # sudo ./deploy-k8s.sh
 ```
 
+#### (Optional) Configure Docker to run as non-root
+
+When Kubernetes is deployed from the script above it installs Docker but does not configure it
+to run as a non-root user. The shell commands below are optional to configure Docker to run as
+a non-root user. They include creating the docker group, adding the current user to that group
+updating the group without having to log out and testing functionality with the hello-world
+container.
+
+If you choose to skip these steps, please continue with the developer environment steps as a
+root user.
+
+```
+# sudo groupadd docker
+# sudo usermod -aG docker $USER
+```
+
+Log out and log back in again for the changes to take effect, then test functionality with a
+hello world container.
+
+```
+# docker run hello-world
+```
+
 #### Deploy ViNO
 
 Once your cluster is up and running, you'll need to build the ViNO image to use, and to deploy the
