@@ -24,6 +24,7 @@
 - job:
     name: airship-deploy-vino
     run: playbooks/integration-test.yaml
+    post-run: playbooks/vino-collect-logs.yaml
     description: Deploys kubernetes and vino
     timeout: 9600
 
