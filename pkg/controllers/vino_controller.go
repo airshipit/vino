@@ -31,8 +31,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerror "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
 
 	vinov1 "vino/pkg/api/v1"
@@ -590,7 +592,9 @@ func (r *VinoReconciler) daemonSet(ctx context.Context, vino *vinov1.Vino) (*app
 
 func (r *VinoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&vinov1.Vino{}).
+		For(&vinov1.Vino{}, builder.WithPredicates(
+			predicate.GenerationChangedPredicate{},
+		)).
 		Complete(r)
 }
 
