@@ -514,12 +514,44 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 		}
 	}
 
+	// TODO develop logic to derive all required ENV variables from VINO CR, and pass them
+	// to setENV function instead
+	if vino.Spec.Network.VMInterfaceName != "" {
+		setEnv(ctx, ds, vino)
+	}
+
 	// this will help avoid colisions if we have two vino CRs in the same namespace
 	ds.Spec.Selector.MatchLabels[vinov1.VinoLabelDSNameSelector] = vino.Name
 	ds.Spec.Template.ObjectMeta.Labels[vinov1.VinoLabelDSNameSelector] = vino.Name
 
 	ds.Spec.Selector.MatchLabels[vinov1.VinoLabelDSNamespaceSelector] = vino.Namespace
 	ds.Spec.Template.ObjectMeta.Labels[vinov1.VinoLabelDSNamespaceSelector] = vino.Namespace
+}
+
+func setEnv(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
+	for i, c := range ds.Spec.Template.Spec.Containers {
+		var set bool
+		for j, envVar := range c.Env {
+			if envVar.Name == vinov1.EnvVarVMInterfaceName {
+				logr.FromContext(ctx).Info("found env variable with vm interface name on daemonset template, overriding it",
+					"vino instance", vino.Namespace+"/"+vino.Name,
+					"container name", c.Name,
+					"value", envVar.Value,
+				)
+				ds.Spec.Template.Spec.Containers[i].Env[j].Value = vino.Spec.Network.VMInterfaceName
+				set = true
+				break
+			}
+		}
+		if !set {
+			ds.Spec.Template.Spec.Containers[i].Env = append(
+				ds.Spec.Template.Spec.Containers[i].Env, corev1.EnvVar{
+					Name:  vinov1.EnvVarVMInterfaceName,
+					Value: vino.Spec.Network.VMInterfaceName,
+				},
+			)
+		}
+	}
 }
 
 func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet) error {

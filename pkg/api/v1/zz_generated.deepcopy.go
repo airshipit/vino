@@ -315,11 +315,7 @@ func (in *VinoSpec) DeepCopyInto(out *VinoSpec) {
 		*out = new(CPUConfiguration)
 		**out = **in
 	}
-	if in.Network != nil {
-		in, out := &in.Network, &out.Network
-		*out = new(Network)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Network.DeepCopyInto(&out.Network)
 	if in.Node != nil {
 		in, out := &in.Node, &out.Node
 		*out = make([]NodeSet, len(*in))

@@ -340,6 +340,17 @@ VMRoutes
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>vmInterfaceName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>VMinterfaceName defines the interface name to be used as bridge for virtual machines</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>

@@ -88,6 +88,10 @@ spec:
                   type: object
                 subnet:
                   type: string
+                vmInterfaceName:
+                  description: VMinterfaceName defines the interface name to be used
+                    as bridge for virtual machines
+                  type: string
               type: object
             nodeSelector:
               description: Define nodelabel parameters

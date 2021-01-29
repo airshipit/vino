@@ -31,6 +31,8 @@ const (
 	VinoLabelDSNamespaceSelector = VinoLabel + "/" + "cr-namespace"
 	// VinoFinalizer constant
 	VinoFinalizer = "vino.airshipit.org"
+	// EnvVarVMInterfaceName environment variable that is used to find VM interface to use for vms
+	EnvVarVMInterfaceName = "VM_BRIDGE_INTERFACE"
 )
 
 // VinoSpec defines the desired state of Vino
@@ -40,7 +42,7 @@ type VinoSpec struct {
 	// Define CPU configuration
 	CPUConfiguration *CPUConfiguration `json:"configuration,omitempty"`
 	// Define network parameters
-	Network *Network `json:"networks,omitempty"`
+	Network Network `json:"networks,omitempty"`
 	// Define node details
 	Node []NodeSet `json:"nodes,omitempty"`
 	// DaemonSetOptions defines how vino will spawn daemonset on nodes
@@ -68,6 +70,8 @@ type Network struct {
 	AllocationStop  string    `json:"allocationStop,omitempty"`
 	DNSServers      []string  `json:"dns_servers,omitempty"`
 	Routes          *VMRoutes `json:"routes,omitempty"`
+	// VMinterfaceName defines the interface name to be used as bridge for virtual machines
+	VMInterfaceName string `json:"vmInterfaceName,omitempty"`
 }
 
 // VMRoutes defined
