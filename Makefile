@@ -27,7 +27,7 @@ DOCKER_PROXY_FLAGS  += --build-arg NO_PROXY=$(NO_PROXY)
 all: manager
 
 # Run tests
-test: generate fmt vet manifests
+test: generate fmt vet manifests lint
 	go test ./... -coverprofile cover.out
 
 # Build manager binary

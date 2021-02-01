@@ -55,10 +55,6 @@
         wget  -c https://github.com/kubernetes-sigs/kubebuilder/releases/download/v{{airship_vino.kube_builder.kube_version}}/kubebuilder_{{airship_vino.kube_builder.kube_version}}_linux_amd64.tar.gz -O - | tar -xz -C /usr/local --one-top-level=kubebuilder --strip-components 1
       args:
         executable: /bin/bash
-    - name: Lint source code
-      make:
-        chdir: "{{ zuul.project.src_dir }}"
-        target: lint
     - name: Run test suite
       make:
         chdir: "{{ zuul.project.src_dir }}"
