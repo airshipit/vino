@@ -8,6 +8,8 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 TOOLBINDIR          := tools/bin
 
+CONTROLLER_GEN_VERSION = v0.3.0
+
 # linting
 LINTER              := $(TOOLBINDIR)/golangci-lint
 LINTER_CONFIG       := .golangci.yaml
@@ -83,22 +85,22 @@ docker-push-controller:
 docker-push-nodelabeler:
 	docker push ${NODE_LABELER_IMG}
 
+CONTROLLER_GEN:=$(GOBIN)/controller-gen
+
 # find or download controller-gen
 # download controller-gen if necessary
 controller-gen:
-ifeq (, $(shell which controller-gen))
 	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	if ! which $(CONTROLLER_GEN) || [ 'Version $(CONTROLLER_GEN_VERSION)' != "$$($(CONTROLLER_GEN) --version)" ];\
+	then\
+		set -e ;\
+		CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+		cd $$CONTROLLER_GEN_TMP_DIR ;\
+		go mod init tmp ;\
+		go get sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION) ;\
+		rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	fi;\
 	}
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
 
 .PHONY: lint
 lint: $(LINTER)
