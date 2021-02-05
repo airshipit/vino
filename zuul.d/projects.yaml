@@ -35,6 +35,4 @@
       jobs:
         - airship-vino-upload-git-mirror
         - airship-deploy-vino-airshipctl
-        - airship-deploy-vino-bash
-        - airship-vino-test-suite
         - airship-vino-publish-images
