@@ -15,33 +15,34 @@
 package ipam
 
 import (
+	"context"
 	"net"
+	"regexp"
 	"strings"
 	"unsafe"
 
-	vinov1 "vino/pkg/api/v1"
-
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	vinov1 "vino/pkg/api/v1"
 )
 
 // Ipam provides IPAM reservation, backed by IPPool CRs
 type Ipam struct {
-	Log    logr.Logger
-	Scheme *runtime.Scheme
-	Client client.Client
-
-	ippools map[string]*vinov1.IPPoolSpec
+	Log       logr.Logger
+	Client    client.Client
+	Namespace string
 }
 
 // NewIpam initializes an empty IPAM configuration.
-// TODO: persist and refresh state from the API server
 // TODO: add ability to remove IP addresses and ranges
-func NewIpam() *Ipam {
-	ippools := make(map[string]*vinov1.IPPoolSpec)
+func NewIpam(logger logr.Logger, client client.Client, namespace string) *Ipam {
 	return &Ipam{
-		ippools: ippools,
+		Log:       logger,
+		Client:    client,
+		Namespace: namespace,
 	}
 }
 
@@ -65,39 +66,47 @@ func NewRange(start string, stop string) (vinov1.Range, error) {
 // AddSubnetRange adds a range within a subnet for IP allocation
 // TODO error: range overlaps with existing range or subnet overlaps with existing subnet
 // TODO error: invalid range for subnet
-func (i *Ipam) AddSubnetRange(subnet string, subnetRange vinov1.Range) error {
+func (i *Ipam) AddSubnetRange(ctx context.Context, subnet string, subnetRange vinov1.Range) error {
+	logger := i.Log.WithValues("subnet", subnet, "subnetRange", subnetRange)
 	// Does the subnet already exist? (this is fine)
-	ippool, exists := i.ippools[subnet]
+	ippools, err := i.getIPPools(ctx)
+	if err != nil {
+		return err
+	}
+	ippool, exists := ippools[subnet]
 	if !exists {
+		logger.Info("IPAM creating subnet and adding range")
 		ippool = &vinov1.IPPoolSpec{
 			Subnet:       subnet,
-			Ranges:       []vinov1.Range{subnetRange},
+			Ranges:       []vinov1.Range{},
 			AllocatedIPs: []string{},
 		}
-		i.ippools[subnet] = ippool
+		ippools[subnet] = ippool
 	} else {
+		logger.Info("IPAM subnet already exists; adding range")
 		// Does the subnet's requested range already exist? (this should fail)
-		exists = false
 		for _, r := range ippool.Ranges {
 			if r == subnetRange {
-				exists = true
-				break
+				return ErrSubnetRangeOverlapsWithExistingRange{Subnet: subnet, SubnetRange: subnetRange}
 			}
-		}
-		if exists {
-			return ErrSubnetRangeOverlapsWithExistingRange{Subnet: subnet, SubnetRange: subnetRange}
 		}
 	}
 	ippool.Ranges = append(ippool.Ranges, subnetRange)
+	err = i.applyIPPool(ctx, *ippool)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 // AllocateIP allocates an IP from a range and return it
-func (i *Ipam) AllocateIP(subnet string, subnetRange vinov1.Range) (string, error) {
-	// NOTE/TODO: this is not threadsafe, which is fine because
-	// the final impl will use the api server as the backend, not local.
-	ippool, exists := i.ippools[subnet]
+func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1.Range) (string, error) {
+	ippools, err := i.getIPPools(ctx)
+	if err != nil {
+		return "", err
+	}
+	ippool, exists := ippools[subnet]
 	if !exists {
 		return "", ErrSubnetNotAllocated{Subnet: subnet}
 	}
@@ -117,7 +126,13 @@ func (i *Ipam) AllocateIP(subnet string, subnetRange vinov1.Range) (string, erro
 	if err != nil {
 		return "", err
 	}
+	i.Log.Info("Allocating IP", "ip", ip, "subnet", subnet, "subnetRange", subnetRange)
 	ippool.AllocatedIPs = append(ippool.AllocatedIPs, ip)
+	err = i.applyIPPool(ctx, *ippool)
+	if err != nil {
+		return "", err
+	}
+
 	return ip, nil
 }
 
@@ -126,7 +141,10 @@ func (i *Ipam) AllocateIP(subnet string, subnetRange vinov1.Range) (string, erro
 // in use, converts it back to a string and returns it.
 // It does not itself add it to the list of assigned IPs.
 func findFreeIPInRange(ippool *vinov1.IPPoolSpec, subnetRange vinov1.Range) (string, error) {
-	allocatedIPSet := sliceToMap(ippool.AllocatedIPs)
+	allocatedIPSet, err := sliceToMap(ippool.AllocatedIPs)
+	if err != nil {
+		return "", err
+	}
 	intToString := intToIPv4String
 	if strings.Contains(ippool.Subnet, ":") {
 		intToString = intToIPv6String
@@ -143,7 +161,7 @@ func findFreeIPInRange(ippool *vinov1.IPPoolSpec, subnetRange vinov1.Range) (str
 	}
 
 	for ip := start; ip <= stop; ip++ {
-		_, in := allocatedIPSet[intToString(ip)]
+		_, in := allocatedIPSet[ip]
 		if !in {
 			// Found an unallocated IP
 			return intToString(ip), nil
@@ -152,14 +170,18 @@ func findFreeIPInRange(ippool *vinov1.IPPoolSpec, subnetRange vinov1.Range) (str
 	return "", ErrSubnetRangeExhausted{ippool.Subnet, subnetRange}
 }
 
-// Create a map[string]struct{} representation of a string slice,
+// Create a map[uint64]struct{} representation of a string slice,
 // for efficient set lookups
-func sliceToMap(slice []string) map[string]struct{} {
-	m := map[string]struct{}{}
+func sliceToMap(slice []string) (map[uint64]struct{}, error) {
+	m := map[uint64]struct{}{}
 	for _, s := range slice {
-		m[s] = struct{}{}
+		i, err := ipStringToInt(s)
+		if err != nil {
+			return m, err
+		}
+		m[i] = struct{}{}
 	}
-	return m
+	return m, nil
 }
 
 // Convert an IPV4 or IPV6 address string to an easily iterable uint64.
@@ -219,4 +241,56 @@ func byteArrayToInt(arr []byte) uint64 {
 		*(*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&val)) + uintptr(size-i-1))) = arr[i]
 	}
 	return val
+}
+
+// Transforms a subnet into k8s-friendly resource name
+func subnetResourceName(subnet string) string {
+	regex := regexp.MustCompile(`[:./]`)
+	return "ippool-" + regex.ReplaceAllString(subnet, "-")
+}
+
+// Persist a pool to the API server (Create or Update)
+func (i *Ipam) applyIPPool(ctx context.Context, spec vinov1.IPPoolSpec) error {
+	logger := i.Log.WithValues("subnet", spec.Subnet)
+
+	ippool := &vinov1.IPPool{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: i.Namespace,
+			Name:      subnetResourceName(spec.Subnet),
+		},
+		Spec: spec,
+	}
+	existingPool := &vinov1.IPPool{}
+	err := i.Client.Get(ctx, client.ObjectKeyFromObject(ippool), existingPool)
+	if err != nil {
+		// Is it an unexpected error?
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		// The error is a warning that the resource doesn't exist yet, so we should create it
+		logger.Info("IPAM creating IPPool")
+		err = i.Client.Create(ctx, ippool)
+	} else {
+		logger.Info("IPAM IPPool already exists; updating it")
+		ippool.ObjectMeta.ResourceVersion = existingPool.ObjectMeta.ResourceVersion
+		err = i.Client.Update(ctx, ippool)
+	}
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+// Return a mapping of all allocated subnets to their IPPoolSpecs.
+func (i *Ipam) getIPPools(ctx context.Context) (map[string]*vinov1.IPPoolSpec, error) {
+	list := &vinov1.IPPoolList{}
+	err := i.Client.List(ctx, list, client.InNamespace(i.Namespace))
+	ippools := make(map[string]*vinov1.IPPoolSpec)
+	if err != nil {
+		return map[string]*vinov1.IPPoolSpec{}, err
+	}
+	for _, ippool := range list.Items {
+		ippools[ippool.Spec.Subnet] = ippool.Spec.DeepCopy()
+	}
+	return ippools, nil
 }

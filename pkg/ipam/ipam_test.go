@@ -15,14 +15,71 @@
 package ipam
 
 import (
+	"context"
 	"math"
 	"testing"
-
 	vinov1 "vino/pkg/api/v1"
+	test "vino/pkg/test"
 
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+// Sets up a mock client that will serve up
+func SetUpMockClient(ctx context.Context, ctrl *gomock.Controller) *test.MockClient {
+	m := test.NewMockClient(ctrl)
+	// Pre-populate IPAM with some precondition test data
+	preExistingIpam := vinov1.IPPoolList{
+		Items: []vinov1.IPPool{
+			{
+				Spec: vinov1.IPPoolSpec{
+					Subnet: "10.0.0.0/16",
+					Ranges: []vinov1.Range{
+						{Start: "10.0.1.0", Stop: "10.0.1.9"},
+					},
+				},
+			},
+			{
+				Spec: vinov1.IPPoolSpec{
+					Subnet: "2600:1700:b030:0000::/72",
+					Ranges: []vinov1.Range{
+						{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:0009::"},
+					},
+				},
+			},
+			{
+				Spec: vinov1.IPPoolSpec{
+					Subnet: "192.168.0.0/1",
+					Ranges: []vinov1.Range{
+						{Start: "192.168.0.0", Stop: "192.168.0.0"},
+					},
+					AllocatedIPs: []string{"192.168.0.0"},
+				},
+			},
+			{
+				Spec: vinov1.IPPoolSpec{
+					Subnet: "2600:1700:b031:0000::/64",
+					Ranges: []vinov1.Range{
+						{Start: "2600:1700:b031:0000::", Stop: "2600:1700:b031:0000::"},
+					},
+					AllocatedIPs: []string{"2600:1700:b031:0000::"},
+				},
+			},
+		},
+	}
+
+	m.EXPECT().List(ctx, gomock.Any(), gomock.Any()).SetArg(1, preExistingIpam)
+	m.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().Create(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+	m.EXPECT().Update(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+	return m
+}
 
 func TestAllocateIP(t *testing.T) {
 	tests := []struct {
@@ -79,32 +136,21 @@ func TestAllocateIP(t *testing.T) {
 		},
 	}
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ctx := context.Background()
+
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			ipammer := NewIpam()
+			m := SetUpMockClient(ctx, ctrl)
+			ipammer := NewIpam(log.Log, m, "vino-system")
+			ipammer.Log = log.Log
 
-			// Pre-populate IPAM with some precondition test data
-			err := ipammer.AddSubnetRange("10.0.0.0/16", vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"})
-			require.NoError(t, err)
-			err = ipammer.AddSubnetRange("2600:1700:b030:0000::/72",
-				vinov1.Range{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:0009::"})
-			require.NoError(t, err)
-			err = ipammer.AddSubnetRange("192.168.0.0/1",
-				vinov1.Range{Start: "192.168.0.0", Stop: "192.168.0.0"})
-			require.NoError(t, err)
-			err = ipammer.AddSubnetRange("2600:1700:b031:0000::/64",
-				vinov1.Range{Start: "2600:1700:b031:0000::", Stop: "2600:1700:b031:0000::"})
-			require.NoError(t, err)
-			_, err = ipammer.AllocateIP("192.168.0.0/1", vinov1.Range{Start: "192.168.0.0", Stop: "192.168.0.0"})
-			require.NoError(t, err)
-			_, err = ipammer.AllocateIP("2600:1700:b031:0000::/64",
-				vinov1.Range{Start: "2600:1700:b031:0000::", Stop: "2600:1700:b031:0000::"})
-			require.NoError(t, err)
-			ip, err := ipammer.AllocateIP(tt.subnet, tt.subnetRange)
+			ip, err := ipammer.AllocateIP(ctx, tt.subnet, tt.subnetRange)
 			if tt.expectedErr != "" {
-				assert.Equal(t, "", ip)
 				require.Error(t, err)
+				assert.Equal(t, "", ip)
 				assert.Contains(t, err.Error(), tt.expectedErr)
 			} else {
 				require.NoError(t, err)
@@ -180,15 +226,17 @@ func TestAddSubnetRange(t *testing.T) {
 		// TODO: check for partially overlapping ranges and subnets
 	}
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ctx := context.Background()
+
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			ipammer := NewIpam()
+			m := SetUpMockClient(ctx, ctrl)
+			ipammer := NewIpam(log.Log, m, "vino-system")
 
-			// Pre-populate IPAM with some precondition test data
-			err := ipammer.AddSubnetRange("10.0.0.0/16", vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"})
-			require.NoError(t, err)
-			err = ipammer.AddSubnetRange(tt.subnet, tt.subnetRange)
+			err := ipammer.AddSubnetRange(ctx, tt.subnet, tt.subnetRange)
 			if tt.expectedErr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr)
@@ -264,30 +312,31 @@ func TestSliceToMap(t *testing.T) {
 	tests := []struct {
 		name string
 		in   []string
-		out  map[string]struct{}
+		out  map[uint64]struct{}
 	}{
 		{
 			name: "empty slice",
 			in:   []string{},
-			out:  map[string]struct{}{},
+			out:  map[uint64]struct{}{},
 		},
 		{
 			name: "one-element slice",
-			in:   []string{"foo"},
-			out:  map[string]struct{}{"foo": {}},
+			in:   []string{"0.0.0.1"},
+			out:  map[uint64]struct{}{1: {}},
 		},
 		{
 			name: "two-element slice",
-			in:   []string{"foo", "bar"},
-			out:  map[string]struct{}{"foo": {}, "bar": {}},
+			in:   []string{"0.0.0.1", "0.0.0.2"},
+			out:  map[uint64]struct{}{1: {}, 2: {}},
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			actual := sliceToMap(tt.in)
+			actual, err := sliceToMap(tt.in)
 			assert.Equal(t, tt.out, actual)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -401,4 +450,120 @@ func TestByteArrayToInt(t *testing.T) {
 			assert.Equal(t, tt.out, actual)
 		})
 	}
+}
+
+func TestSubnetResourceName(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		out  string
+	}{
+		{
+			name: "ipv4",
+			in:   "192.168.0.0/24",
+			out:  "ippool-192-168-0-0-24",
+		},
+		{
+			name: "ipv6",
+			in:   "0001:0000:0000:0001::/32",
+			out:  "ippool-0001-0000-0000-0001---32",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			actual := subnetResourceName(tt.in)
+			assert.Equal(t, tt.out, actual)
+		})
+	}
+}
+
+func TestApplyIPPool(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := test.NewMockClient(ctrl)
+	ipammer := NewIpam(log.Log, m, "vino-system")
+	ctx := context.Background()
+
+	spec := vinov1.IPPoolSpec{
+		Subnet: "192.168.0.0/24",
+		Ranges: []vinov1.Range{
+			{
+				Start: "192.168.1.10",
+				Stop:  "192.168.1.20",
+			},
+		},
+	}
+	pool := vinov1.IPPool{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "vino-system",
+			Name:      "ippool-192-168-0-0-24",
+		},
+		Spec: spec,
+	}
+	emptyPool := &vinov1.IPPool{}
+
+	// Test Create scenario
+	m = test.NewMockClient(ctrl)
+	ipammer.Client = m
+	m.EXPECT().Get(ctx, client.ObjectKeyFromObject(&pool), emptyPool).Return(
+		apierrors.NewNotFound(schema.GroupResource{
+			Group: "airship.airshipit.org", Resource: "ippools"}, "ippool-192-168-0-0-24"))
+	m.EXPECT().Create(ctx, &pool)
+	err := ipammer.applyIPPool(ctx, spec)
+	assert.NoError(t, err)
+
+	// Test Update scenario
+	existingPool := pool.DeepCopy()
+	existingPool.Generation = 1
+	m = test.NewMockClient(ctrl)
+	ipammer.Client = m
+	m.EXPECT().Get(ctx, client.ObjectKeyFromObject(&pool), emptyPool).SetArg(2, *existingPool)
+	m.EXPECT().Update(ctx, &pool)
+	err = ipammer.applyIPPool(ctx, spec)
+	assert.NoError(t, err)
+
+	// Test non-already-exists error scenario
+	m = test.NewMockClient(ctrl)
+	ipammer.Client = m
+	m.EXPECT().Get(ctx, client.ObjectKeyFromObject(&pool), emptyPool).Return(
+		apierrors.NewBadRequest("bad things happened"))
+	err = ipammer.applyIPPool(ctx, spec)
+	assert.Error(t, err)
+}
+
+func TestGetIPPools(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+
+	spec := vinov1.IPPoolSpec{
+		Subnet: "192.168.0.0/24",
+		Ranges: []vinov1.Range{
+			{
+				Start: "192.168.1.10",
+				Stop:  "192.168.1.20",
+			},
+		},
+	}
+	pool := vinov1.IPPool{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "vino-system",
+			Name:      "ippool-192-168-0-0-24",
+		},
+		Spec: spec,
+	}
+	fullList := vinov1.IPPoolList{Items: []vinov1.IPPool{pool}}
+	expectedResult := map[string]*vinov1.IPPoolSpec{"192.168.0.0/24": &spec}
+
+	m := test.NewMockClient(ctrl)
+	ipammer := NewIpam(log.Log, m, "vino-system")
+	ipammer.Client = m
+	m.EXPECT().List(ctx, gomock.Any(), client.InNamespace("vino-system")).SetArg(1, fullList)
+	actualResult, err := ipammer.getIPPools(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, actualResult)
 }
