@@ -49,7 +49,6 @@
             done
           }
           export -f get_pod_logs
-          kubectl config use-context {{ kctl_context }}
           get_namespaces | \
             xargs -r -n 1 -P ${PARALLELISM_FACTOR} -I {} bash -c 'get_pods "$@"' _ {} | \
             xargs -r -n 2 -P ${PARALLELISM_FACTOR} -I {} bash -c 'get_pod_logs "$@"' _ {}
