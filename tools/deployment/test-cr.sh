@@ -15,11 +15,29 @@ function vinoDebugInfo () {
 kubectl apply -f config/samples/vino_cr.yaml
 
 # Remove logs collection from here, when we will have zuul collect logs job
+until [[ $(kubectl get vino vino-test-cr 2>/dev/null) ]]; do
+  count=$((count + 1))
+  if [[ ${count} -eq "30" ]]; then
+    echo ' Timed out waiting for vino test cr to exist'
+    vinoDebugInfo
+    return 1
+  fi
+  sleep 2
+done
 if ! kubectl wait --for=condition=Ready vino vino-test-cr --timeout=180s; then
     vinoDebugInfo
 fi
 
 # no need to collect logs on fail, since they are already collected before
-if ! kubectl wait --for=condition=Ready pods -l 'vino-role=vino-builder' --timeout=5s; then
+until [[ $(kubectl get ds vino-test-cr 2>/dev/null) ]]; do
+  count=$((count + 1))
+  if [[ ${count} -eq "30" ]]; then
+    echo ' Timed out waiting for vino builder daemonset to exist'
+    vinoDebugInfo
+    return 1
+  fi
+  sleep 2
+done
+if ! kubectl rollout status ds vino-test-cr --timeout=10s; then
     vinoDebugInfo
 fi
