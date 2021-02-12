@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -41,9 +42,8 @@ import (
 )
 
 const (
-	DaemonSetTemplateDefaultDataKey   = "template"
-	DaemonSetTemplateDefaultName      = "vino-daemonset-template"
-	DaemonSetTemplateDefaultNamespace = "vino-system"
+	DaemonSetTemplateDefaultDataKey = "template"
+	DaemonSetTemplateDefaultName    = "vino-daemonset-template"
 
 	ContainerNameLibvirt = "libvirt"
 	ConfigMapKeyVinoSpec = "vino-spec"
@@ -246,7 +246,7 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	err = r.reconcileConfigMap(ctx, req.NamespacedName, vino)
+	err = r.reconcileConfigMap(ctx, vino)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -271,8 +271,8 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return ctrl.Result{}, nil
 }
 
-func (r *VinoReconciler) reconcileConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
-	err := r.ensureConfigMap(ctx, name, vino)
+func (r *VinoReconciler) reconcileConfigMap(ctx context.Context, vino *vinov1.Vino) error {
+	err := r.ensureConfigMap(ctx, vino)
 	if err != nil {
 		err = fmt.Errorf("could not reconcile ConfigMap: %w", err)
 		apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
@@ -310,10 +310,10 @@ func (r *VinoReconciler) reconcileConfigMap(ctx context.Context, name types.Name
 	return nil
 }
 
-func (r *VinoReconciler) ensureConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) error {
+func (r *VinoReconciler) ensureConfigMap(ctx context.Context, vino *vinov1.Vino) error {
 	logger := logr.FromContext(ctx)
 
-	generatedCM, err := r.buildConfigMap(ctx, name, vino)
+	generatedCM, err := r.buildConfigMap(ctx, vino)
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func (r *VinoReconciler) ensureConfigMap(ctx context.Context, name types.Namespa
 	return nil
 }
 
-func (r *VinoReconciler) buildConfigMap(ctx context.Context, name types.NamespacedName, vino *vinov1.Vino) (
+func (r *VinoReconciler) buildConfigMap(ctx context.Context, vino *vinov1.Vino) (
 	*corev1.ConfigMap, error) {
 	logr.FromContext(ctx).Info("Generating new config map for vino object")
 
@@ -353,13 +353,17 @@ func (r *VinoReconciler) buildConfigMap(ctx context.Context, name types.Namespac
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name.Name,
-			Namespace: name.Namespace,
+			Namespace: getRuntimeNamespace(),
+			Name:      r.getConfigMapName(vino),
 		},
 		Data: map[string]string{
 			ConfigMapKeyVinoSpec: string(data),
 		},
 	}, nil
+}
+
+func (r *VinoReconciler) getConfigMapName(vino *vinov1.Vino) string {
+	return fmt.Sprintf("%s-%s", vino.Namespace, vino.Name)
 }
 
 func (r *VinoReconciler) getCurrentConfigMap(ctx context.Context, vino *vinov1.Vino) (*corev1.ConfigMap, error) {
@@ -470,8 +474,8 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 	volume := "vino-spec"
 
 	ds.Spec.Template.Spec.NodeSelector = vino.Spec.NodeSelector.MatchLabels
-	ds.Name = vino.Name
-	ds.Namespace = vino.Namespace
+	ds.Namespace = getRuntimeNamespace()
+	ds.Name = fmt.Sprintf("%s-%s", vino.Namespace, vino.Name)
 
 	found := false
 	for _, vol := range ds.Spec.Template.Spec.Volumes {
@@ -485,7 +489,7 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 			Name: volume,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{Name: vino.Name},
+					LocalObjectReference: corev1.LocalObjectReference{Name: r.getConfigMapName(vino)},
 				},
 			},
 		})
@@ -593,7 +597,7 @@ func (r *VinoReconciler) daemonSet(ctx context.Context, vino *vinov1.Vino) (*app
 	if dsTemplate == (vinov1.NamespacedName{}) {
 		logger.Info("using default configmap for daemonset template")
 		dsTemplate.Name = DaemonSetTemplateDefaultName
-		dsTemplate.Namespace = DaemonSetTemplateDefaultNamespace
+		dsTemplate.Namespace = getRuntimeNamespace()
 	}
 
 	err := r.Get(ctx, types.NamespacedName{
@@ -765,4 +769,8 @@ func applyRuntimeObject(ctx context.Context, key client.ObjectKey, obj client.Ob
 	default:
 		return err
 	}
+}
+
+func getRuntimeNamespace() string {
+	return os.Getenv("RUNTIME_NAMESPACE")
 }

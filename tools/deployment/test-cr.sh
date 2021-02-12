@@ -29,7 +29,7 @@ if ! kubectl wait --for=condition=Ready vino vino-test-cr --timeout=180s; then
 fi
 
 # no need to collect logs on fail, since they are already collected before
-until [[ $(kubectl get ds vino-test-cr 2>/dev/null) ]]; do
+until [[ $(kubectl -n vino-system get ds default-vino-test-cr 2>/dev/null) ]]; do
   count=$((count + 1))
   if [[ ${count} -eq "30" ]]; then
     echo ' Timed out waiting for vino builder daemonset to exist'
@@ -38,6 +38,6 @@ until [[ $(kubectl get ds vino-test-cr 2>/dev/null) ]]; do
   fi
   sleep 2
 done
-if ! kubectl rollout status ds vino-test-cr --timeout=10s; then
+if ! kubectl -n vino-system rollout status ds default-vino-test-cr --timeout=10s; then
     vinoDebugInfo
 fi
