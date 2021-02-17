@@ -51,6 +51,14 @@ spec:
           volumeMounts:
             - name: var-run-libvirt
               mountPath: /var/run/libvirt
+        - name: labeler
+          image: quay.io/airshipit/nodelabeler
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
       volumes:
         - name: libmodules
           hostPath:

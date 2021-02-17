@@ -134,7 +134,9 @@ kube-system   kube-scheduler-ubuntu-virtualbox            1/1     Running   0   
 kube-system   storage-provisioner                         1/1     Running   0          3h8m
 vino-system   vino-controller-manager-788b994c74-sbf26    2/2     Running   0          25m
 ```
-
+#### Configure the VM Bridge Interface
+To configure the bare metal networking interface that should be used for the VM Bridge,
+please specify it in your vino CR at field spec.networks.vmInterfaceName
 #### Test basic functionality
 
 ```
