@@ -366,6 +366,10 @@ func (r *VinoReconciler) getConfigMapName(vino *vinov1.Vino) string {
 	return fmt.Sprintf("%s-%s", vino.Namespace, vino.Name)
 }
 
+func (r *VinoReconciler) getDaemonSetName(vino *vinov1.Vino) string {
+	return fmt.Sprintf("%s-%s", vino.Namespace, vino.Name)
+}
+
 func (r *VinoReconciler) getCurrentConfigMap(ctx context.Context, vino *vinov1.Vino) (*corev1.ConfigMap, error) {
 	logr.FromContext(ctx).Info("Getting current config map for vino object")
 	cm := &corev1.ConfigMap{}
@@ -475,7 +479,7 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 
 	ds.Spec.Template.Spec.NodeSelector = vino.Spec.NodeSelector.MatchLabels
 	ds.Namespace = getRuntimeNamespace()
-	ds.Name = fmt.Sprintf("%s-%s", vino.Namespace, vino.Name)
+	ds.Name = r.getDaemonSetName(vino)
 
 	found := false
 	for _, vol := range ds.Spec.Template.Spec.Volumes {
@@ -639,7 +643,7 @@ func (r *VinoReconciler) finalize(ctx context.Context, vino *vinov1.Vino) error 
 	if err := r.Delete(ctx,
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: vino.Name, Namespace: vino.Namespace,
+				Name: r.getDaemonSetName(vino), Namespace: getRuntimeNamespace(),
 			},
 		}); err != nil {
 		return err
@@ -647,7 +651,7 @@ func (r *VinoReconciler) finalize(ctx context.Context, vino *vinov1.Vino) error 
 	if err := r.Delete(ctx,
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: vino.Name, Namespace: vino.Namespace,
+				Name: r.getConfigMapName(vino), Namespace: getRuntimeNamespace(),
 			},
 		}); err != nil {
 		return err
