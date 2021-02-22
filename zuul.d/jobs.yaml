@@ -54,3 +54,9 @@
         pass-to-parent: true
     vars:
       image: quay.io/airshipit/vino
+
+- job:
+    name: airship-vino-check-github-issues
+    description: Checks if a Github issue is referenced in the commit message
+    run: playbooks/airship-vino-check-github-issues.yaml
+    voting: false
