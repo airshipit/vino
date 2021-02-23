@@ -14,7 +14,8 @@ function vinoDebugInfo () {
 
 server_label="airshipit.org/server=s1"
 rack_label="airshipit.org/rack=r1"
-copyLabel="airshipit.org/k8s-role=worker"
+master_copy_label="airshipit.org/k8s-role=master"
+worker_copy_label="airshipit.org/k8s-role=worker"
 
 # Label all nodes with the same rack/label. We are ok with this for this simple test.
 kubectl label node --overwrite=true --all $server_label $rack_label
@@ -34,7 +35,7 @@ until [[ $(kubectl get vino vino-test-cr 2>/dev/null) ]]; do
   fi
   sleep 2
 done
-if ! kubectl wait --for=condition=Ready vino vino-test-cr --timeout=180s; then
+if ! kubectl wait --for=condition=Ready vino vino-test-cr --timeout=600s; then
     vinoDebugInfo
 fi
 
@@ -52,11 +53,17 @@ if ! kubectl -n vino-system rollout status ds default-vino-test-cr --timeout=10s
     vinoDebugInfo
 fi
 
-bmhCount=$(kubectl get baremetalhosts -n vino-system -l "$server_label,$server_label,$copyLabel" -o name | wc -l)
+masterCount=$(kubectl get baremetalhosts -n vino-system -l "$server_label,$server_label,$master_copy_label" -o name | wc -l)
 
-# with this setup set up, exactly 3 BMHs must have been created by VINO controller
+# with this setup set up, exactly 1 master must have been created by VINO controller
 
-[[ "$bmhCount" -eq "3" ]]
+[[ "$masterCount" -eq "1" ]]
+
+workerCount=$(kubectl get baremetalhosts -n vino-system -l "$server_label,$server_label,$worker_copy_label" -o name | wc -l)
+
+# with this setup set up, exactly 4 workers must have been created by VINO controller
+
+[[ "$workerCount" -eq "4" ]]
 
 kubectl get baremetalhosts -n vino-system --show-labels=true
 

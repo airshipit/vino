@@ -2,7 +2,7 @@ apiVersion: airship.airshipit.org/v1
 kind: Vino
 metadata:
   name: vino-test-cr
-  #  labels: ...
+  labels: {}
 spec:
   nodeLabelKeysToCopy:
     - "airshipit.org/server"
@@ -11,9 +11,10 @@ spec:
     matchLabels:
       beta.kubernetes.io/os: linux
   configuration:
-      cpuExclude: 0-4,54-60
-      redfishCredentialSecret:
-          name: redfishSecret
+    cpuExclude: 0-4,54-60
+    redfishCredentialSecret:
+      name: redfishSecret
+      namespace: airship-system
   networks:
     - name: management
       subnet: 192.168.2.0/20
@@ -23,7 +24,7 @@ spec:
       routes:
         - network: 10.0.0.0
           netmask: 255.255.255.0
-          gateway: $vino.nodebridgegw # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
+          gateway: 192.168.2.1 # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
       dns_servers: ["135.188.34.124"]
     - name: external
       subnet: 169.0.0.0/24
@@ -35,16 +36,20 @@ spec:
       allocationStart: 169.0.0.10
       allocationStop: 169.0.0.254
       macPrefix: "0A:00:00:00:00:00"
-
   vmBridge: lo
   nodes:
-    - name: "worker"
-      count: 3
+    - name: master
+      count: 1
       bmhLabels:
-        airshipit.org/k8s-role: worker
+        airshipit.org/k8s-role: master
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
+      labels:
+        vmFlavor: master
+      # libvirtTemplate:
+      #  name: libvirt-template-master
+      #  namespace: vino-system
       networkInterfaces:
         - name: management
           type: bridge
@@ -63,7 +68,50 @@ spec:
             bond_mode: 802.3ad
             bond_xmit_hash_policy: layer3+4
             bond_miimon: "100"
+      diskDrives:
+        - name: root
+          type: qcow2
+          path: /home/foobar/qemu.img
+          options:
+            sizeGb: 30
+            sparse: true
+    - name: worker
+      count: 4
+      bmhLabels:
+        airshipit.org/k8s-role: worker
+      networkDataTemplate:
+        name: "test-template"
+        namespace: "default"
+      labels:
+        vmFlavor: worker
+      # libvirtTemplate:
+      #  name: libvirt-template-worker
+      #  namespace: vino-system
+      networkInterfaces:
+        - name: management
+          type: bridge
+          network: management
+          mtu: 1500
+          options:
+            bridgeName: vminfra-bridge
+        - name: external
+          type: sriov-bond
+          network: external
+          mtu: 9100
+          options:
+            # this is an 'open-ended' set of k/v pairs, validation is perfomed by vino rather than crd schema.
+            pf: "[enp29s0f0,enp219s1f1]"
+            vlan: "100"
+            bond_mode: 802.3ad
+            bond_xmit_hash_policy: layer3+4
+            bond_miimon: "100"
+      diskDrives:
+        - name: root
+          type: qcow2
+          path: /home/foobar/qemu.img
+          options:
+            sizeGb: 10
+            sparse: true
   bmcCredentials:
-    username: "admin"
-    password: "passw0rd"
-
+    username: admin
+    password: passw0rd

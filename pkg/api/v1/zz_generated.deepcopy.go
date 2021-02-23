@@ -324,8 +324,10 @@ func (in *NodeSet) DeepCopyInto(out *NodeSet) {
 	}
 	if in.DiskDrives != nil {
 		in, out := &in.DiskDrives, &out.DiskDrives
-		*out = new(DiskDrivesTemplate)
-		(*in).DeepCopyInto(*out)
+		*out = make([]DiskDrivesTemplate, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	out.NetworkDataTemplate = in.NetworkDataTemplate
 }

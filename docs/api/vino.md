@@ -796,7 +796,7 @@ string
 </em>
 </td>
 <td>
-<p>Parameter for Node master or worker-standard</p>
+<p>Parameter for Node master or worker</p>
 </td>
 </tr>
 <tr>
@@ -850,7 +850,7 @@ NamespacedName
 <code>diskDrives</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.DiskDrivesTemplate">
-DiskDrivesTemplate
+[]DiskDrivesTemplate
 </a>
 </em>
 </td>
