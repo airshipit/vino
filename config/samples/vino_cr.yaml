@@ -28,3 +28,6 @@ spec:
       allocationStart: 169.0.0.10
       allocationStop: 169.0.0.254
   vmBridge: lo
+  nodes:
+    - name: "worker"
+      count: 3

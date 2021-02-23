@@ -22,7 +22,10 @@ func testDS() *appsv1.DaemonSet {
 
 func testVINO() *vinov1.Vino {
 	return &vinov1.Vino{
-		ObjectMeta: v1.ObjectMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "vino",
+			Namespace: "default",
+		},
 		Spec: vinov1.VinoSpec{
 			Networks: []vinov1.Network{}}}
 }

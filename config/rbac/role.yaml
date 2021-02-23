@@ -7,6 +7,21 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+  - watch
+- apiGroups:
   - airship.airshipit.org
   resources:
   - vinoes

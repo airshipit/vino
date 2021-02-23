@@ -20,8 +20,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	metal3 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,6 +65,14 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(cfg).ToNot(BeNil())
 
 	err = airshipv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Add Metal3 CRD
+	err = metal3.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Add Kubernetes Coree??
+	err = corev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

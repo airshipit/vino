@@ -210,6 +210,8 @@ type VinoReconciler struct {
 
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=vinoes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=vinoes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=list;watch
+// +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 
 func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := logr.FromContext(ctx)
@@ -256,11 +258,10 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	// TODO (alexanderhughes) Enable this section of code when ready to integrate the BMH creation
-	//err = r.reconcileBMH(ctx, req.NamespacedName, vino)
-	//if err != nil {
-	//	return ctrl.Result{Requeue: true}, err
-	//}
+	err = r.reconcileBMHs(ctx, vino)
+	if err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
 
 	vinov1.VinoReady(vino)
 	if err := r.patchStatus(ctx, vino); err != nil {
@@ -660,119 +661,16 @@ func (r *VinoReconciler) finalize(ctx context.Context, vino *vinov1.Vino) error 
 	return r.Update(ctx, vino)
 }
 
-// TODO (alexanderhughes) Enable this section of code when ready to integrate the BMH creation
-//func (r *VinoReconciler) reconcileBMH(ctx context.Context, name types.NamespacedName,
-//	vino *vinov1.Vino) error {
-//	logger := logr.FromContext(ctx)
-//	err := r.ensureBMH(ctx, name)
-//	if err != nil {
-//		err = fmt.Errorf("could not reconcile BMH: %w", err)
-//		apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
-//			Status:             metav1.ConditionFalse,
-//			Reason:             vinov1.ReconciliationFailedReason,
-//			Message:            err.Error(),
-//			Type:               vinov1.ConditionTypeReady,
-//			ObservedGeneration: vino.GetGeneration(),
-//		})
-//		apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
-//			Status:             metav1.ConditionFalse,
-//			Reason:             vinov1.ReconciliationFailedReason,
-//			Message:            err.Error(),
-//			Type:               vinov1.ConditionTypeBMHReady,
-//			ObservedGeneration: vino.GetGeneration(),
-//		})
-//		if patchStatusErr := r.patchStatus(ctx, vino); patchStatusErr != nil {
-//			err = kerror.NewAggregate([]error{err, patchStatusErr})
-//			logger.Error(err, "unable to patch status after BMH reconciliation failed")
-//		}
-//		return err
-//	}
-//	apimeta.SetStatusCondition(&vino.Status.Conditions, metav1.Condition{
-//		Status:             metav1.ConditionTrue,
-//		Reason:             vinov1.ReconciliationSucceededReason,
-//		Message:            "BMH reconciled",
-//		Type:               vinov1.ConditionTypeBMHReady,
-//		ObservedGeneration: vino.GetGeneration(),
-//	})
-//	if err = r.patchStatus(ctx, vino); err != nil {
-//		logger.Error(err, "unable to patch status after BMH reconciliation succeeded")
-//		return err
-//	}
-//
-//	return nil
-//}
-//
-//// ensureBMH initializes a BaremetalHost and returns the secrets for Sushy and Networking Config
-//func (r *VinoReconciler) ensureBMH(ctx context.Context, name types.NamespacedName) error {
-//	networkDataName := fmt.Sprintf("%s-network-data", name.Name)
-//	sushyDataName := fmt.Sprintf("%s-sushy-data", name.Name)
-//	bmh := &metal3.BareMetalHost{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      name.Name,
-//			Namespace: name.Namespace,
-//		},
-//		Spec: metal3.BareMetalHostSpec{
-//			NetworkData: &corev1.SecretReference{
-//				Name:      networkDataName,
-//				Namespace: name.Namespace,
-//			}, BMC: metal3.BMCDetails{
-//				Address:                        "",
-//				CredentialsName:                sushyDataName,
-//				DisableCertificateVerification: false,
-//			},
-//		},
-//	}
-//	err := applyRuntimeObject(ctx, types.NamespacedName{Name: name.Name, Namespace: name.Namespace}, bmh, r.Client)
-//	if err != nil {
-//		return err
-//	}
-//
-//	networkData := &corev1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      networkDataName,
-//			Namespace: name.Namespace,
-//		},
-//		Data: map[string][]byte{
-//			"networkData": []byte(networkDataContent),
-//		},
-//		Type: corev1.SecretTypeOpaque,
-//	}
-//	err = applyRuntimeObject(ctx, types.NamespacedName{Name: networkDataName,
-//		Namespace: name.Namespace}, networkData, r.Client)
-//	if err != nil {
-//		return err
-//	}
-//
-//	sushyData := &corev1.Secret{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name:      sushyDataName,
-//			Namespace: name.Namespace,
-//		},
-//		Data: map[string][]byte{
-//			"sushyData": []byte(sushyDataContent),
-//		},
-//		Type: corev1.SecretTypeOpaque,
-//	}
-//
-//	err = applyRuntimeObject(ctx, types.NamespacedName{Name: sushyDataName,
-//		Namespace: name.Namespace}, sushyData, r.Client)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-
 func applyRuntimeObject(ctx context.Context, key client.ObjectKey, obj client.Object, c client.Client) error {
 	getObj := obj
-	switch err := c.Get(ctx, key, getObj); {
+	err := c.Get(ctx, key, getObj)
+	switch {
 	case apierror.IsNotFound(err):
-		return c.Create(ctx, obj)
+		err = c.Create(ctx, obj)
 	case err == nil:
-		return c.Update(ctx, obj)
-	default:
-		return err
+		err = c.Patch(ctx, obj, client.MergeFrom(getObj))
 	}
+	return err
 }
 
 func getRuntimeNamespace() string {

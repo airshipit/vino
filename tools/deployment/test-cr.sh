@@ -42,3 +42,10 @@ done
 if ! kubectl -n vino-system rollout status ds default-vino-test-cr --timeout=10s; then
     vinoDebugInfo
 fi
+
+
+bmhCount=$(kubectl get baremetalhosts -n vino-system -o name | wc -l)
+
+# with this setup set up, exactly 3 BMHs must have been created by VINO controller
+
+[[ "$bmhCount" -eq "3" ]]
