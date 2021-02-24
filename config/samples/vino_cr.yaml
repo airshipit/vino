@@ -11,3 +11,5 @@ spec:
       cpuExclude: 0-4,54-60
       redfishCredentialSecret:
           name: redfishSecret
+  networks:
+      vmInterfaceName: lo
