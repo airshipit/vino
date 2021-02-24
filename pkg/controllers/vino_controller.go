@@ -42,164 +42,11 @@ import (
 )
 
 const (
-	DaemonSetTemplateDefaultDataKey = "template"
-	DaemonSetTemplateDefaultName    = "vino-daemonset-template"
+	TemplateDefaultKey           = "template"
+	DaemonSetTemplateDefaultName = "vino-daemonset-template"
 
 	ContainerNameLibvirt = "libvirt"
 	ConfigMapKeyVinoSpec = "vino-spec"
-
-	// TODO (alexanderhughes) Enable this section of code when ready to integrate the BMH creation
-//	sushyDataContent = `
-//{
-//	"username": "foo",
-//	"password": "bar",
-//}`
-//
-//	networkDataContent = `
-//{
-//    "links": [
-//        {
-//            "id": "eno4",
-//            "name": "eno4",
-//            "type": "phy",
-//            "mtu": 1500
-//        },
-//        {
-//            "id": "enp59s0f1",
-//            "name": "enp59s0f1",
-//            "type": "phy",
-//            "mtu": 9100
-//        },
-//        {
-//            "id": "enp216s0f0",
-//            "name": "enp216s0f0",
-//            "type": "phy",
-//            "mtu": 9100
-//        },
-//        {
-//            "id": "bond0",
-//            "name": "bond0",
-//            "type": "bond",
-//            "bond_links": [
-//                "enp59s0f1",
-//                "enp216s0f0"
-//            ],
-//            "bond_mode": "802.3ad",
-//            "bond_xmit_hash_policy": "layer3+4",
-//            "bond_miimon": 100,
-//            "mtu": 9100
-//        },
-//        {
-//            "id": "bond0.41",
-//            "name": "bond0.41",
-//            "type": "vlan",
-//            "vlan_link": "bond0",
-//            "vlan_id": 41,
-//            "mtu": 9100,
-//            "vlan_mac_address": null
-//        },
-//        {
-//            "id": "bond0.42",
-//            "name": "bond0.42",
-//            "type": "vlan",
-//            "vlan_link": "bond0",
-//            "vlan_id": 42,
-//            "mtu": 9100,
-//            "vlan_mac_address": null
-//        },
-//        {
-//            "id": "bond0.44",
-//            "name": "bond0.44",
-//            "type": "vlan",
-//            "vlan_link": "bond0",
-//            "vlan_id": 44,
-//            "mtu": 9100,
-//            "vlan_mac_address": null
-//        },
-//        {
-//            "id": "bond0.45",
-//            "name": "bond0.45",
-//            "type": "vlan",
-//            "vlan_link": "bond0",
-//            "vlan_id": 45,
-//            "mtu": 9100,
-//            "vlan_mac_address": null
-//        }
-//    ],
-//    "networks": [
-//        {
-//            "id": "oam-ipv6",
-//            "type": "ipv6",
-//            "link": "bond0.41",
-//            "ip_address": "2001:1890:1001:293d::139",
-//            "routes": [
-//                {
-//                    "network": "::/0",
-//                    "netmask": "::/0",
-//                    "gateway": "2001:1890:1001:293d::1"
-//                }
-//            ]
-//        },
-//        {
-//            "id": "oam-ipv4",
-//            "type": "ipv4",
-//            "link": "bond0.41",
-//            "ip_address": "32.68.51.139",
-//            "netmask": "255.255.255.128",
-//            "dns_nameservers": [
-//                "135.188.34.124",
-//                "135.38.244.16",
-//                "135.188.34.84"
-//            ],
-//            "routes": [
-//                {
-//                    "network": "0.0.0.0",
-//                    "netmask": "0.0.0.0",
-//                    "gateway": "32.68.51.129"
-//                }
-//            ]
-//        },
-//        {
-//            "id": "pxe-ipv6",
-//            "link": "eno4",
-//            "type": "ipv6",
-//            "ip_address": "fd00:900:100:138::11"
-//        },
-//        {
-//            "id": "pxe-ipv4",
-//            "link": "eno4",
-//            "type": "ipv4",
-//            "ip_address": "172.30.0.11",
-//            "netmask": "255.255.255.128"
-//        },
-//        {
-//            "id": "storage-ipv6",
-//            "link": "bond0.42",
-//            "type": "ipv6",
-//            "ip_address": "fd00:900:100:139::15"
-//        },
-//        {
-//            "id": "storage-ipv4",
-//            "link": "bond0.42",
-//            "type": "ipv4",
-//            "ip_address": "172.31.1.15",
-//            "netmask": "255.255.255.128"
-//        },
-//        {
-//            "id": "ksn-ipv6",
-//            "link": "bond0.44",
-//            "type": "ipv6",
-//            "ip_address": "fd00:900:100:13a::11"
-//        },
-//        {
-//            "id": "ksn-ipv4",
-//            "link": "bond0.44",
-//            "type": "ipv4",
-//            "ip_address": "172.29.0.11",
-//            "netmask": "255.255.255.128"
-//        }
-//    ]
-//}`
 )
 
 // VinoReconciler reconciles a Vino object
@@ -212,6 +59,7 @@ type VinoReconciler struct {
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=vinoes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list;watch
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 
 func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := logr.FromContext(ctx)
@@ -615,10 +463,10 @@ func (r *VinoReconciler) daemonSet(ctx context.Context, vino *vinov1.Vino) (*app
 		return nil, err
 	}
 
-	template, exist := cm.Data[DaemonSetTemplateDefaultDataKey]
+	template, exist := cm.Data[TemplateDefaultKey]
 	if !exist {
-		logger.Info("malformed template provided data doesn't have key " + DaemonSetTemplateDefaultDataKey)
-		return nil, fmt.Errorf("malformed template provided data doesn't have key " + DaemonSetTemplateDefaultDataKey)
+		logger.Info("malformed template provided data doesn't have key " + TemplateDefaultKey)
+		return nil, fmt.Errorf("malformed template provided data doesn't have key " + TemplateDefaultKey)
 	}
 
 	ds := &appsv1.DaemonSet{}

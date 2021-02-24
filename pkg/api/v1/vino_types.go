@@ -83,12 +83,14 @@ type VMRoutes struct {
 //NodeSet node definitions
 type NodeSet struct {
 	//Parameter for Node master or worker-standard
-	Name                      string              `json:"name,omitempty"`
-	Count                     int                 `json:"count,omitempty"`
-	NodeLabel                 *VMNodeFlavor       `json:"labels,omitempty"`
-	LibvirtTemplateDefinition NamespacedName      `json:"libvirtTemplate,omitempty"`
-	NetworkInterface          *NetworkInterface   `json:"networkInterfaces,omitempty"`
-	DiskDrives                *DiskDrivesTemplate `json:"diskDrives,omitempty"`
+	Name             string              `json:"name,omitempty"`
+	Count            int                 `json:"count,omitempty"`
+	NodeLabel        *VMNodeFlavor       `json:"labels,omitempty"`
+	LibvirtTemplate  NamespacedName      `json:"libvirtTemplate,omitempty"`
+	NetworkInterface *NetworkInterface   `json:"networkInterfaces,omitempty"`
+	DiskDrives       *DiskDrivesTemplate `json:"diskDrives,omitempty"`
+	// NetworkDataTemplate reference a Secret containing a template key
+	NetworkDataTemplate NamespacedName `json:"networkDataTemplate,omitempty"`
 }
 
 // VMNodeFlavor labels for node to be annotated

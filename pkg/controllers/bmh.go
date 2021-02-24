@@ -1,8 +1,26 @@
+/*
+
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"text/template"
 
 	"github.com/go-logr/logr"
 	metal3 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -97,7 +115,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				return err
 			}
 
-			netData, netDataNs, err := r.reconcileBMHNetworkData(ctx, vino)
+			netData, netDataNs, err := r.reconcileBMHNetworkData(ctx, node, vino, nil)
 			if err != nil {
 				return err
 			}
@@ -168,8 +186,62 @@ func (r *VinoReconciler) reconcileBMHCredentials(ctx context.Context, vino *vino
 	return "credentials", nil
 }
 
-//nolint:unparam
-func (r *VinoReconciler) reconcileBMHNetworkData(_ context.Context, vino *vinov1.Vino) (string, string, error) {
-	// TODO implement this
-	return "network-data", getRuntimeNamespace(), nil
+func (r *VinoReconciler) reconcileBMHNetworkData(
+	ctx context.Context,
+	node vinov1.NodeSet,
+	vino *vinov1.Vino,
+	values interface{}) (string, string, error) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      node.NetworkDataTemplate.Name,
+			Namespace: node.NetworkDataTemplate.Namespace,
+		},
+	}
+
+	logger := logr.FromContext(ctx).WithValues("vino node", node.Name, "vino", client.ObjectKeyFromObject(vino))
+
+	objKey := client.ObjectKeyFromObject(secret)
+	logger.Info("Looking for secret with network template for vino node", "secret", objKey)
+	if err := r.Get(ctx, objKey, secret); err != nil {
+		return "", "", err
+	}
+
+	rawTmpl, ok := secret.Data[TemplateDefaultKey]
+	if !ok {
+		return "", "", fmt.Errorf("network template secret %v has no key '%s'", objKey, TemplateDefaultKey)
+	}
+
+	tpl, err := template.New("net-template").Parse(string(rawTmpl))
+	if err != nil {
+		return "", "", err
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	err = tpl.Execute(buf, values)
+	if err != nil {
+		return "", "", err
+	}
+
+	name := fmt.Sprintf("%s-%s-%s", vino.Namespace, vino.Name, node.Name)
+
+	ns := getRuntimeNamespace()
+	netSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		StringData: map[string]string{
+			"networkData": buf.String(),
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	objKey = client.ObjectKeyFromObject(netSecret)
+
+	logger.Info("Creating network secret for vino node", "secret", objKey)
+
+	if err := applyRuntimeObject(ctx, objKey, netSecret, r.Client); err != nil {
+		return "", "", err
+	}
+	return name, ns, nil
 }

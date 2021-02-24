@@ -149,6 +149,15 @@ spec:
                   name:
                     description: Parameter for Node master or worker-standard
                     type: string
+                  networkDataTemplate:
+                    description: NetworkDataTemplate reference a Secret containing
+                      a template key
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
                   networkInterfaces:
                     description: NetworkInterface define interface on the VM
                     properties:

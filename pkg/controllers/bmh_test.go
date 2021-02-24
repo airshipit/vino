@@ -1,3 +1,19 @@
+/*
+
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
@@ -28,6 +44,10 @@ var _ = Describe("Test BMH reconciliation", func() {
 				{
 					Name:  "worker",
 					Count: 3,
+					NetworkDataTemplate: vinov1.NamespacedName{
+						Name:      "default-template",
+						Namespace: "default",
+					},
 				},
 			}
 
@@ -63,6 +83,17 @@ var _ = Describe("Test BMH reconciliation", func() {
 				},
 			}
 
+			networkTmplSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "default-template",
+					Namespace: "default",
+				},
+				Type: corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					TemplateDefaultKey: []byte("REPLACEME"),
+				},
+			}
+
 			node1 := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "node01",
@@ -92,7 +123,7 @@ var _ = Describe("Test BMH reconciliation", func() {
 
 			fake.NewClientBuilder()
 			reconciler := &VinoReconciler{
-				Client: fake.NewFakeClient(podList, node1, node2, vino),
+				Client: fake.NewFakeClient(podList, node1, node2, vino, networkTmplSecret),
 			}
 
 			l := zap.New(zap.UseDevMode(true))
@@ -107,8 +138,18 @@ var _ = Describe("Test BMH reconciliation", func() {
 					Namespace: "vino-system",
 				},
 			}
+
+			networkSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "default-vino-worker",
+					Namespace: "vino-system",
+				},
+			}
+
 			Expect(reconciler.Get(ctx, client.ObjectKeyFromObject(bmh), bmh)).Should(Succeed())
 			Expect(bmh.Spec.BMC.Address).To(Equal("redfish+http://10.0.0.2:8000/redfish/v1/Systems/worker-1"))
+			Expect(reconciler.Get(ctx, client.ObjectKeyFromObject(networkSecret), networkSecret)).Should(Succeed())
+			Expect(networkSecret.StringData["networkData"]).To(Equal("REPLACEME"))
 		})
 	})
 })

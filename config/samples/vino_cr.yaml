@@ -31,3 +31,7 @@ spec:
   nodes:
     - name: "worker"
       count: 3
+      networkDataTemplate:
+        name: "test-template"
+        namespace: "default"
+

@@ -14,6 +14,7 @@ function vinoDebugInfo () {
 
 kubectl apply -f config/samples/vino_cr.yaml
 kubectl apply -f config/samples/ippool.yaml
+kubectl apply -f config/samples/network-template-secret.yaml
 
 # Remove logs collection from here, when we will have zuul collect logs job
 until [[ $(kubectl get vino vino-test-cr 2>/dev/null) ]]; do
@@ -43,9 +44,10 @@ if ! kubectl -n vino-system rollout status ds default-vino-test-cr --timeout=10s
     vinoDebugInfo
 fi
 
-
 bmhCount=$(kubectl get baremetalhosts -n vino-system -o name | wc -l)
 
 # with this setup set up, exactly 3 BMHs must have been created by VINO controller
 
 [[ "$bmhCount" -eq "3" ]]
+
+kubectl get secret -o yaml -n vino-system default-vino-test-cr-worker

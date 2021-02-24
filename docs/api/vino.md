@@ -688,6 +688,19 @@ DiskDrivesTemplate
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>networkDataTemplate</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.NamespacedName">
+NamespacedName
+</a>
+</em>
+</td>
+<td>
+<p>NetworkDataTemplate reference a Secret containing a template key</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
