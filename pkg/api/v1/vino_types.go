@@ -42,11 +42,13 @@ type VinoSpec struct {
 	// Define CPU configuration
 	CPUConfiguration *CPUConfiguration `json:"configuration,omitempty"`
 	// Define network parameters
-	Network Network `json:"networks,omitempty"`
+	Networks []Network `json:"networks,omitempty"`
 	// Define node details
 	Node []NodeSet `json:"nodes,omitempty"`
 	// DaemonSetOptions defines how vino will spawn daemonset on nodes
 	DaemonSetOptions DaemonSetOptions `json:"daemonSetOptions,omitempty"`
+	// VMBridge defines the single interface name to be used as a bridge for VMs
+	VMBridge string `json:"vmBridge"`
 }
 
 // NodeSelector identifies nodes to create VMs on
@@ -64,14 +66,12 @@ type CPUConfiguration struct {
 // Network defines libvirt networks
 type Network struct {
 	//Network Parameter defined
-	Name            string    `json:"name,omitempty"`
-	SubNet          string    `json:"subnet,omitempty"`
-	AllocationStart string    `json:"allocationStart,omitempty"`
-	AllocationStop  string    `json:"allocationStop,omitempty"`
-	DNSServers      []string  `json:"dns_servers,omitempty"`
-	Routes          *VMRoutes `json:"routes,omitempty"`
-	// VMinterfaceName defines the interface name to be used as bridge for virtual machines
-	VMInterfaceName string `json:"vmInterfaceName,omitempty"`
+	Name            string     `json:"name,omitempty"`
+	SubNet          string     `json:"subnet,omitempty"`
+	AllocationStart string     `json:"allocationStart,omitempty"`
+	AllocationStop  string     `json:"allocationStop,omitempty"`
+	DNSServers      []string   `json:"dns_servers,omitempty"`
+	Routes          []VMRoutes `json:"routes,omitempty"`
 }
 
 // VMRoutes defined

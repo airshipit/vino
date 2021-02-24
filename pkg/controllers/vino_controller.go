@@ -524,7 +524,7 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 
 	// TODO develop logic to derive all required ENV variables from VINO CR, and pass them
 	// to setENV function instead
-	if vino.Spec.Network.VMInterfaceName != "" {
+	if vino.Spec.VMBridge != "" {
 		setEnv(ctx, ds, vino)
 	}
 
@@ -546,7 +546,7 @@ func setEnv(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
 					"container name", c.Name,
 					"value", envVar.Value,
 				)
-				ds.Spec.Template.Spec.Containers[i].Env[j].Value = vino.Spec.Network.VMInterfaceName
+				ds.Spec.Template.Spec.Containers[i].Env[j].Value = vino.Spec.VMBridge
 				set = true
 				break
 			}
@@ -555,7 +555,7 @@ func setEnv(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
 			ds.Spec.Template.Spec.Containers[i].Env = append(
 				ds.Spec.Template.Spec.Containers[i].Env, corev1.EnvVar{
 					Name:  vinov1.EnvVarVMInterfaceName,
-					Value: vino.Spec.Network.VMInterfaceName,
+					Value: vino.Spec.VMBridge,
 				},
 			)
 		}

@@ -215,8 +215,8 @@ func (in *Network) DeepCopyInto(out *Network) {
 	}
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes
-		*out = new(VMRoutes)
-		**out = **in
+		*out = make([]VMRoutes, len(*in))
+		copy(*out, *in)
 	}
 }
 
@@ -429,7 +429,13 @@ func (in *VinoSpec) DeepCopyInto(out *VinoSpec) {
 		*out = new(CPUConfiguration)
 		**out = **in
 	}
-	in.Network.DeepCopyInto(&out.Network)
+	if in.Networks != nil {
+		in, out := &in.Networks, &out.Networks
+		*out = make([]Network, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Node != nil {
 		in, out := &in.Node, &out.Node
 		*out = make([]NodeSet, len(*in))

@@ -12,4 +12,19 @@ spec:
       redfishCredentialSecret:
           name: redfishSecret
   networks:
-      vmInterfaceName: lo
+    - name: management
+      subnet: 192.168.2.0/20
+      allocationStart: 192.168.2.10
+      allocationStop: 192.168.2.14 # docs should specify that the range should = number of vms (to permit future expansion over multiple vino crs etc)
+      routes:
+        - to: 10.0.0.0/24
+          via: $vino.nodebridgegw # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
+      dns_servers: ["135.188.34.124"]
+    - name: external
+      subnet: 169.0.0.0/24
+      routes:
+        - to: 0.0.0.0/0
+          via: 169.0.0.1
+      allocationStart: 169.0.0.10
+      allocationStop: 169.0.0.254
+  vmBridge: lo

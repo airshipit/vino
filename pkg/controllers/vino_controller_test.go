@@ -24,7 +24,7 @@ func testVINO() *vinov1.Vino {
 	return &vinov1.Vino{
 		ObjectMeta: v1.ObjectMeta{},
 		Spec: vinov1.VinoSpec{
-			Network: vinov1.Network{}}}
+			Networks: []vinov1.Network{}}}
 }
 
 var _ = Describe("Test Setting Env variables", func() {
@@ -43,7 +43,7 @@ var _ = Describe("Test Setting Env variables", func() {
 			It("sets env interface variable to every container", func() {
 				vino := testVINO()
 				ifName := "eth0"
-				vino.Spec.Network.VMInterfaceName = ifName
+				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = make([]corev1.Container, 3)
 
@@ -61,7 +61,7 @@ var _ = Describe("Test Setting Env variables", func() {
 			It("overrides that variable in the container", func() {
 				vino := testVINO()
 				ifName := "eth0"
-				vino.Spec.Network.VMInterfaceName = ifName
+				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = []corev1.Container{
 					{
@@ -86,7 +86,7 @@ var _ = Describe("Test Setting Env variables", func() {
 			It("overrides that variable in the container", func() {
 				vino := testVINO()
 				ifName := "eth0"
-				vino.Spec.Network.VMInterfaceName = ifName
+				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = []corev1.Container{
 					{
@@ -138,7 +138,7 @@ var _ = Describe("Test Setting Env variables", func() {
 			It("it sets required variable only single time", func() {
 				vino := testVINO()
 				ifName := "eth0"
-				vino.Spec.Network.VMInterfaceName = ifName
+				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = []corev1.Container{
 					{

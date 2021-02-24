@@ -487,22 +487,11 @@ string
 <code>routes</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.VMRoutes">
-VMRoutes
+[]VMRoutes
 </a>
 </em>
 </td>
 <td>
-</td>
-</tr>
-<tr>
-<td>
-<code>vmInterfaceName</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>VMinterfaceName defines the interface name to be used as bridge for virtual machines</p>
 </td>
 </tr>
 </tbody>
@@ -887,7 +876,7 @@ CPUConfiguration
 <code>networks</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.Network">
-Network
+[]Network
 </a>
 </em>
 </td>
@@ -919,6 +908,17 @@ DaemonSetOptions
 </td>
 <td>
 <p>DaemonSetOptions defines how vino will spawn daemonset on nodes</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vmBridge</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>VMBridge defines the single interface name to be used as a bridge for VMs</p>
 </td>
 </tr>
 </table>
@@ -988,7 +988,7 @@ CPUConfiguration
 <code>networks</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.Network">
-Network
+[]Network
 </a>
 </em>
 </td>
@@ -1020,6 +1020,17 @@ DaemonSetOptions
 </td>
 <td>
 <p>DaemonSetOptions defines how vino will spawn daemonset on nodes</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vmBridge</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>VMBridge defines the single interface name to be used as a bridge for VMs</p>
 </td>
 </tr>
 </tbody>

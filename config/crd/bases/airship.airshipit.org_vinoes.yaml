@@ -66,33 +66,34 @@ spec:
               type: object
             networks:
               description: Define network parameters
-              properties:
-                allocationStart:
-                  type: string
-                allocationStop:
-                  type: string
-                dns_servers:
-                  items:
+              items:
+                description: Network defines libvirt networks
+                properties:
+                  allocationStart:
                     type: string
-                  type: array
-                name:
-                  description: Network Parameter defined
-                  type: string
-                routes:
-                  description: VMRoutes defined
-                  properties:
-                    to:
+                  allocationStop:
+                    type: string
+                  dns_servers:
+                    items:
                       type: string
-                    via:
-                      type: string
-                  type: object
-                subnet:
-                  type: string
-                vmInterfaceName:
-                  description: VMinterfaceName defines the interface name to be used
-                    as bridge for virtual machines
-                  type: string
-              type: object
+                    type: array
+                  name:
+                    description: Network Parameter defined
+                    type: string
+                  routes:
+                    items:
+                      description: VMRoutes defined
+                      properties:
+                        to:
+                          type: string
+                        via:
+                          type: string
+                      type: object
+                    type: array
+                  subnet:
+                    type: string
+                type: object
+              type: array
             nodeSelector:
               description: Define nodelabel parameters
               properties:
@@ -167,6 +168,12 @@ spec:
                     type: object
                 type: object
               type: array
+            vmBridge:
+              description: VMBridge defines the single interface name to be used as
+                a bridge for VMs
+              type: string
+          required:
+          - vmBridge
           type: object
         status:
           description: VinoStatus defines the observed state of Vino

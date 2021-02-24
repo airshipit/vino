@@ -136,7 +136,8 @@ vino-system   vino-controller-manager-788b994c74-sbf26    2/2     Running   0   
 ```
 #### Configure the VM Bridge Interface
 To configure the bare metal networking interface that should be used for the VM Bridge,
-please specify it in your vino CR at field spec.networks.vmInterfaceName
+please specify it in your vino CR at field spec.vmBridge.
+
 #### Test basic functionality
 
 ```
