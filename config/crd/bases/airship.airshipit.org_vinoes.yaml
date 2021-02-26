@@ -36,6 +36,19 @@ spec:
         spec:
           description: VinoSpec defines the desired state of Vino
           properties:
+            bmcCredentials:
+              description: BMCCredentials contain credentials that will be used to
+                create BMH nodes sushy tools will use these credentials as well, to
+                set up authentication
+              properties:
+                password:
+                  type: string
+                username:
+                  type: string
+              required:
+              - password
+              - username
+              type: object
             configuration:
               description: Define CPU configuration
               properties:
@@ -182,6 +195,7 @@ spec:
                 a bridge for VMs
               type: string
           required:
+          - bmcCredentials
           - vmBridge
           type: object
         status:

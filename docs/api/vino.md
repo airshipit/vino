@@ -9,6 +9,48 @@
 <p>Package v1 contains API Schema definitions for the airship v1 API group</p>
 Resource Types:
 <ul class="simple"></ul>
+<h3 id="airship.airshipit.org/v1.BMCCredentials">BMCCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.VinoSpec">VinoSpec</a>)
+</p>
+<p>BMCCredentials contain credentials that will be used to create BMH nodes
+sushy tools will use these credentials as well, to set up authentication</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>password</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="airship.airshipit.org/v1.CPUConfiguration">CPUConfiguration
 </h3>
 <p>
@@ -934,6 +976,20 @@ string
 <p>VMBridge defines the single interface name to be used as a bridge for VMs</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>bmcCredentials</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.BMCCredentials">
+BMCCredentials
+</a>
+</em>
+</td>
+<td>
+<p>BMCCredentials contain credentials that will be used to create BMH nodes
+sushy tools will use these credentials as well, to set up authentication</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1044,6 +1100,20 @@ string
 </td>
 <td>
 <p>VMBridge defines the single interface name to be used as a bridge for VMs</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bmcCredentials</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.BMCCredentials">
+BMCCredentials
+</a>
+</em>
+</td>
+<td>
+<p>BMCCredentials contain credentials that will be used to create BMH nodes
+sushy tools will use these credentials as well, to set up authentication</p>
 </td>
 </tr>
 </tbody>

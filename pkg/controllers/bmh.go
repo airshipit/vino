@@ -182,8 +182,27 @@ func (r *VinoReconciler) getBMCAddress(
 
 // reconcileBMHCredentials returns secret name with credentials and error
 func (r *VinoReconciler) reconcileBMHCredentials(ctx context.Context, vino *vinov1.Vino) (string, error) {
-	// TODO implement this
-	return "credentials", nil
+	ns := getRuntimeNamespace()
+	// coresponds to DS name, since we have only one DS per vino CR
+	credentialSecretName := fmt.Sprintf("%s-%s", r.getDaemonSetName(vino), "credentials")
+	netSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      credentialSecretName,
+			Namespace: ns,
+		},
+		StringData: map[string]string{
+			"username": vino.Spec.BMCCredentials.Username,
+			"password": vino.Spec.BMCCredentials.Password,
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	objKey := client.ObjectKeyFromObject(netSecret)
+
+	if err := applyRuntimeObject(ctx, objKey, netSecret, r.Client); err != nil {
+		return "", err
+	}
+	return credentialSecretName, nil
 }
 
 func (r *VinoReconciler) reconcileBMHNetworkData(

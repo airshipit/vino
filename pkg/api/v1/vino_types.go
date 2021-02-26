@@ -49,6 +49,16 @@ type VinoSpec struct {
 	DaemonSetOptions DaemonSetOptions `json:"daemonSetOptions,omitempty"`
 	// VMBridge defines the single interface name to be used as a bridge for VMs
 	VMBridge string `json:"vmBridge"`
+	// BMCCredentials contain credentials that will be used to create BMH nodes
+	// sushy tools will use these credentials as well, to set up authentication
+	BMCCredentials BMCCredentials `json:"bmcCredentials"`
+}
+
+// BMCCredentials contain credentials that will be used to create BMH nodes
+// sushy tools will use these credentials as well, to set up authentication
+type BMCCredentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 // NodeSelector identifies nodes to create VMs on
