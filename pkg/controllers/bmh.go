@@ -120,6 +120,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				return err
 			}
 
+			// TODO extend this function to return server/rack labels as well
 			bmcAddr, err := r.getBMCAddress(ctx, pod, roleSuffix)
 			if err != nil {
 				return err
@@ -129,6 +130,9 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bmhName,
 					Namespace: getRuntimeNamespace(),
+					// TODO add rack and server labels, when we crearly define mechanism
+					// which labels we are copying
+					Labels: node.NodeLabel.VMFlavor,
 				},
 				Spec: metal3.BareMetalHostSpec{
 					NetworkData: &corev1.SecretReference{

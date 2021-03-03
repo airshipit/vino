@@ -95,7 +95,7 @@ type NodeSet struct {
 	//Parameter for Node master or worker-standard
 	Name             string              `json:"name,omitempty"`
 	Count            int                 `json:"count,omitempty"`
-	NodeLabel        *VMNodeFlavor       `json:"labels,omitempty"`
+	NodeLabel        VMNodeFlavor        `json:"labels,omitempty"`
 	LibvirtTemplate  NamespacedName      `json:"libvirtTemplate,omitempty"`
 	NetworkInterface *NetworkInterface   `json:"networkInterfaces,omitempty"`
 	DiskDrives       *DiskDrivesTemplate `json:"diskDrives,omitempty"`
