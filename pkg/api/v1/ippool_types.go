@@ -21,14 +21,20 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// IPPool tracks allocation ranges and statuses within a specific
+// IPPoolSpec tracks allocation ranges and statuses within a specific
 // subnet IPv4 or IPv6 subnet.  It has a set of ranges of IPs
 // within the subnet from which IPs can be allocated by IPAM,
 // and a set of IPs that are currently allocated already.
 type IPPoolSpec struct {
-	Subnet       string   `json:"subnet"`
-	Ranges       []Range  `json:"ranges"`
-	AllocatedIPs []string `json:"allocatedIPs"`
+	Subnet       string        `json:"subnet"`
+	Ranges       []Range       `json:"ranges"`
+	AllocatedIPs []AllocatedIP `json:"allocatedIPs"`
+}
+
+// AllocatedIP Allocates an IP to an entity
+type AllocatedIP struct {
+	IP          string `json:"ip"`
+	AllocatedTo string `json:"allocatedTo"`
 }
 
 // Range has (inclusive) bounds within a subnet from which IPs can be allocated

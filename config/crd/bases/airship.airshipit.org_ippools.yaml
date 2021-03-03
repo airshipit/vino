@@ -32,14 +32,23 @@ spec:
         metadata:
           type: object
         spec:
-          description: IPPool tracks allocation ranges and statuses within a specific
+          description: IPPoolSpec tracks allocation ranges and statuses within a specific
             subnet IPv4 or IPv6 subnet.  It has a set of ranges of IPs within the
             subnet from which IPs can be allocated by IPAM, and a set of IPs that
             are currently allocated already.
           properties:
             allocatedIPs:
               items:
-                type: string
+                description: AllocatedIP Allocates an IP to an entity
+                properties:
+                  allocatedTo:
+                    type: string
+                  ip:
+                    type: string
+                required:
+                - allocatedTo
+                - ip
+                type: object
               type: array
             ranges:
               items:

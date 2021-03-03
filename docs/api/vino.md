@@ -9,6 +9,47 @@
 <p>Package v1 contains API Schema definitions for the airship v1 API group</p>
 Resource Types:
 <ul class="simple"></ul>
+<h3 id="airship.airshipit.org/v1.AllocatedIP">AllocatedIP
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.IPPoolSpec">IPPoolSpec</a>)
+</p>
+<p>AllocatedIP Allocates an IP to an entity</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ip</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>allocatedTo</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="airship.airshipit.org/v1.BMCCredentials">BMCCredentials
 </h3>
 <p>
@@ -326,7 +367,9 @@ string
 <td>
 <code>allocatedIPs</code><br>
 <em>
-[]string
+<a href="#airship.airshipit.org/v1.AllocatedIP">
+[]AllocatedIP
+</a>
 </em>
 </td>
 <td>
@@ -357,7 +400,7 @@ IPPoolStatus
 (<em>Appears on:</em>
 <a href="#airship.airshipit.org/v1.IPPool">IPPool</a>)
 </p>
-<p>IPPool tracks allocation ranges and statuses within a specific
+<p>IPPoolSpec tracks allocation ranges and statuses within a specific
 subnet IPv4 or IPv6 subnet.  It has a set of ranges of IPs
 within the subnet from which IPs can be allocated by IPAM,
 and a set of IPs that are currently allocated already.</p>
@@ -397,7 +440,9 @@ string
 <td>
 <code>allocatedIPs</code><br>
 <em>
-[]string
+<a href="#airship.airshipit.org/v1.AllocatedIP">
+[]AllocatedIP
+</a>
 </em>
 </td>
 <td>

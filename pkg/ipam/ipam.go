@@ -65,6 +65,9 @@ func NewRange(start string, stop string) (vinov1.Range, error) {
 
 // AddSubnetRange adds a range within a subnet for IP allocation
 // TODO error: range overlaps with existing range or subnet overlaps with existing subnet
+// NOTE: the above should only be an error if a subnet is re-added with a *different*
+// subnet range than what is already allocated -- i.e. this function should be idempotent
+// against allocating the exact same subnet+range multiple times.
 // TODO error: invalid range for subnet
 func (i *Ipam) AddSubnetRange(ctx context.Context, subnet string, subnetRange vinov1.Range) error {
 	logger := i.Log.WithValues("subnet", subnet, "subnetRange", subnetRange)
@@ -73,35 +76,43 @@ func (i *Ipam) AddSubnetRange(ctx context.Context, subnet string, subnetRange vi
 	if err != nil {
 		return err
 	}
+	// Add the IPAM subnet if it doesn't exist already
 	ippool, exists := ippools[subnet]
 	if !exists {
-		logger.Info("IPAM creating subnet and adding range")
+		logger.Info("IPAM creating subnet")
 		ippool = &vinov1.IPPoolSpec{
 			Subnet:       subnet,
 			Ranges:       []vinov1.Range{},
-			AllocatedIPs: []string{},
+			AllocatedIPs: []vinov1.AllocatedIP{},
 		}
 		ippools[subnet] = ippool
-	} else {
-		logger.Info("IPAM subnet already exists; adding range")
-		// Does the subnet's requested range already exist? (this should fail)
-		for _, r := range ippool.Ranges {
-			if r == subnetRange {
-				return ErrSubnetRangeOverlapsWithExistingRange{Subnet: subnet, SubnetRange: subnetRange}
-			}
+	}
+	// Add the IPAM range to the subnet if it doesn't exist already
+	exists = false
+	for _, existingSubnetRange := range ippools[subnet].Ranges {
+		if existingSubnetRange == subnetRange {
+			exists = true
+			break
 		}
 	}
-	ippool.Ranges = append(ippool.Ranges, subnetRange)
-	err = i.applyIPPool(ctx, *ippool)
-	if err != nil {
-		return err
+	if !exists {
+		logger.Info("IPAM creating subnet")
+		ippool.Ranges = append(ippool.Ranges, subnetRange)
+		err = i.applyIPPool(ctx, *ippool)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 // AllocateIP allocates an IP from a range and return it
-func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1.Range) (string, error) {
+// allocatedTo: a unique identifier for the entity that is requesting / will own the
+//              allocated IP.  If the same entity requests another IP, it will be given
+//              the same one.  I.e. this function is idempotent for the same allocatedTo.
+func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1.Range,
+	allocatedTo string) (string, error) {
 	ippools, err := i.getIPPools(ctx)
 	if err != nil {
 		return "", err
@@ -122,18 +133,36 @@ func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1
 		return "", ErrSubnetRangeNotAllocated{Subnet: subnet, SubnetRange: subnetRange}
 	}
 
-	ip, err := findFreeIPInRange(ippool, subnetRange)
-	if err != nil {
-		return "", err
-	}
-	i.Log.Info("Allocating IP", "ip", ip, "subnet", subnet, "subnetRange", subnetRange)
-	ippool.AllocatedIPs = append(ippool.AllocatedIPs, ip)
-	err = i.applyIPPool(ctx, *ippool)
-	if err != nil {
-		return "", err
+	// If an IP has already been allocated to this entity, return it
+	ip := findAlreadyAllocatedIP(ippool, allocatedTo)
+
+	// No IP already allocated, so allocate a new IP
+	if ip == "" {
+		ip, err = findFreeIPInRange(ippool, subnetRange)
+		if err != nil {
+			return "", err
+		}
+		i.Log.Info("Allocating IP", "ip", ip, "subnet", subnet, "subnetRange", subnetRange)
+		ippool.AllocatedIPs = append(ippool.AllocatedIPs, vinov1.AllocatedIP{IP: ip, AllocatedTo: allocatedTo})
+		err = i.applyIPPool(ctx, *ippool)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return ip, nil
+}
+
+// This returns an IP already allocated to the entity specified by `allocatedTo`
+// if it exists within the requested ippool/subnet, and a blank string
+// if no IP is already allocated.
+func findAlreadyAllocatedIP(ippool *vinov1.IPPoolSpec, allocatedTo string) string {
+	for _, allocatedIP := range ippool.AllocatedIPs {
+		if allocatedIP.AllocatedTo == allocatedTo {
+			return allocatedIP.IP
+		}
+	}
+	return ""
 }
 
 // This converts IP ranges/addresses into iterable ints,
@@ -170,12 +199,12 @@ func findFreeIPInRange(ippool *vinov1.IPPoolSpec, subnetRange vinov1.Range) (str
 	return "", ErrSubnetRangeExhausted{ippool.Subnet, subnetRange}
 }
 
-// Create a map[uint64]struct{} representation of a string slice,
+// Create a map[uint64]struct{} representation of an AllocatedIP slice,
 // for efficient set lookups
-func sliceToMap(slice []string) (map[uint64]struct{}, error) {
+func sliceToMap(slice []vinov1.AllocatedIP) (map[uint64]struct{}, error) {
 	m := map[uint64]struct{}{}
 	for _, s := range slice {
-		i, err := ipStringToInt(s)
+		i, err := ipStringToInt(s.IP)
 		if err != nil {
 			return m, err
 		}
