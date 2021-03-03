@@ -23,6 +23,7 @@
         -  airship-deploy-vino
         -  airship-vino-test-suite
         -  airship-vino-build-images
+        -  airship-vino-check-github-issues
     gate:
       jobs:
         - airship-deploy-vino
