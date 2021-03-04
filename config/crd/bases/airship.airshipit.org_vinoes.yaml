@@ -97,13 +97,17 @@ spec:
                     items:
                       description: VMRoutes defined
                       properties:
-                        to:
+                        gateway:
                           type: string
-                        via:
+                        netmask:
+                          type: string
+                        network:
                           type: string
                       type: object
                     type: array
                   subnet:
+                    type: string
+                  type:
                     type: string
                 type: object
               type: array
@@ -163,8 +167,7 @@ spec:
                     description: Parameter for Node master or worker-standard
                     type: string
                   networkDataTemplate:
-                    description: NetworkDataTemplate reference a Secret containing
-                      a template key
+                    description: NetworkDataTemplate must have a template key
                     properties:
                       name:
                         type: string
@@ -172,22 +175,24 @@ spec:
                         type: string
                     type: object
                   networkInterfaces:
-                    description: NetworkInterface define interface on the VM
-                    properties:
-                      mtu:
-                        type: integer
-                      name:
-                        description: Define parameter for network interfaces
-                        type: string
-                      network:
-                        type: string
-                      options:
-                        additionalProperties:
+                    items:
+                      description: NetworkInterface define interface on the VM
+                      properties:
+                        mtu:
+                          type: integer
+                        name:
+                          description: Define parameter for network interfaces
                           type: string
-                        type: object
-                      type:
-                        type: string
-                    type: object
+                        network:
+                          type: string
+                        options:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        type:
+                          type: string
+                      type: object
+                    type: array
                 type: object
               type: array
             vmBridge:

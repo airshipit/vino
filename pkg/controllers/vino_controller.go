@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	vinov1 "vino/pkg/api/v1"
+	"vino/pkg/ipam"
 )
 
 const (
@@ -53,10 +54,12 @@ const (
 type VinoReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Ipam   *ipam.Ipam
 }
 
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=vinoes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=vinoes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=airship.airshipit.org,resources=ippools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list;watch
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch

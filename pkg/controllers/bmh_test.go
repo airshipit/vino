@@ -40,7 +40,7 @@ var _ = Describe("Test BMH reconciliation", func() {
 			os.Setenv("RUNTIME_NAMESPACE", "vino-system")
 			defer os.Unsetenv("RUNTIME_NAMESPACE")
 			vino := testVINO()
-			vino.Spec.Node = []vinov1.NodeSet{
+			vino.Spec.Nodes = []vinov1.NodeSet{
 				{
 					Name:  "worker",
 					Count: 3,
@@ -141,7 +141,7 @@ var _ = Describe("Test BMH reconciliation", func() {
 
 			networkSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "default-vino-worker",
+					Name:      "default-vino-node01-worker-0-network-data",
 					Namespace: "vino-system",
 				},
 			}
