@@ -1,6 +1,4 @@
 /*
-
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -22,6 +20,7 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"github.com/go-logr/logr"
 	metal3 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,7 +31,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vinov1 "vino/pkg/api/v1"
+	"vino/pkg/ipam"
 )
+
+type networkTemplateValues struct {
+	Node      vinov1.NodeSet // the specific node type to be templated
+	BMHName   string
+	Networks  []vinov1.Network
+	Generated generatedValues // Host-specific values calculated by ViNO: IP, etc
+}
+
+type generatedValues struct {
+	IPAddresses map[string]string // a map of network names to IP addresses
+}
 
 func (r *VinoReconciler) ensureBMHs(ctx context.Context, vino *vinov1.Vino) error {
 	labelOpt := client.MatchingLabels{
@@ -56,7 +67,11 @@ func (r *VinoReconciler) ensureBMHs(ctx context.Context, vino *vinov1.Vino) erro
 			"pod name",
 			types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name},
 		)
-		err := r.createBMHperPod(ctx, vino, pod)
+		err := r.createIpamNetworks(ctx, vino)
+		if err != nil {
+			return err
+		}
+		err = r.createBMHperPod(ctx, vino, pod)
 		if err != nil {
 			return err
 		}
@@ -101,8 +116,22 @@ func (r *VinoReconciler) reconcileBMHs(ctx context.Context, vino *vinov1.Vino) e
 	return nil
 }
 
+func (r *VinoReconciler) createIpamNetworks(ctx context.Context, vino *vinov1.Vino) error {
+	for _, network := range vino.Spec.Networks {
+		subnetRange, err := ipam.NewRange(network.AllocationStart, network.AllocationStop)
+		if err != nil {
+			return err
+		}
+		err = r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino, pod corev1.Pod) error {
-	for _, node := range vino.Spec.Node {
+	for _, node := range vino.Spec.Nodes {
 		logger := logr.FromContext(ctx)
 		logger.Info("Creating BMHs for vino node", "node name", node.Name, "count", node.Count)
 		prefix := r.getBMHNodePrefix(vino, pod)
@@ -115,7 +144,43 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				return err
 			}
 
-			netData, netDataNs, err := r.reconcileBMHNetworkData(ctx, node, vino, nil)
+			// Allocate an IP for each of this BMH's network interfaces
+			ipAddresses := map[string]string{}
+			for _, iface := range node.NetworkInterfaces {
+				networkName := iface.NetworkName
+				subnet := ""
+				subnetRange := vinov1.Range{}
+				for _, network := range vino.Spec.Networks {
+					if network.Name == networkName {
+						subnet = network.SubNet
+						subnetRange, err = ipam.NewRange(network.AllocationStart,
+							network.AllocationStop)
+						if err != nil {
+							return err
+						}
+						break
+					}
+				}
+				if subnet == "" {
+					return fmt.Errorf("Interface %s doesn't have a matching network defined", networkName)
+				}
+				ipAllocatedTo := fmt.Sprintf("%s/%s", bmhName, iface.NetworkName)
+				ipAddress, er := r.Ipam.AllocateIP(ctx, subnet, subnetRange, ipAllocatedTo)
+				if er != nil {
+					return er
+				}
+				ipAddresses[networkName] = ipAddress
+			}
+
+			values := networkTemplateValues{
+				Node:     node,
+				BMHName:  bmhName,
+				Networks: vino.Spec.Networks,
+				Generated: generatedValues{
+					IPAddresses: ipAddresses,
+				},
+			}
+			netData, netDataNs, err := r.reconcileBMHNetworkData(ctx, node, vino, values)
 			if err != nil {
 				return err
 			}
@@ -213,7 +278,7 @@ func (r *VinoReconciler) reconcileBMHNetworkData(
 	ctx context.Context,
 	node vinov1.NodeSet,
 	vino *vinov1.Vino,
-	values interface{}) (string, string, error) {
+	values networkTemplateValues) (string, string, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      node.NetworkDataTemplate.Name,
@@ -234,7 +299,7 @@ func (r *VinoReconciler) reconcileBMHNetworkData(
 		return "", "", fmt.Errorf("network template secret %v has no key '%s'", objKey, TemplateDefaultKey)
 	}
 
-	tpl, err := template.New("net-template").Parse(string(rawTmpl))
+	tpl, err := template.New("net-template").Funcs(sprig.TxtFuncMap()).Parse(string(rawTmpl))
 	if err != nil {
 		return "", "", err
 	}
@@ -245,7 +310,7 @@ func (r *VinoReconciler) reconcileBMHNetworkData(
 		return "", "", err
 	}
 
-	name := fmt.Sprintf("%s-%s-%s", vino.Namespace, vino.Name, node.Name)
+	name := fmt.Sprintf("%s-network-data", values.BMHName)
 
 	ns := getRuntimeNamespace()
 	netSecret := &corev1.Secret{

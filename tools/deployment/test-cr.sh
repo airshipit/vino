@@ -50,5 +50,6 @@ bmhCount=$(kubectl get baremetalhosts -n vino-system -o name | wc -l)
 
 [[ "$bmhCount" -eq "3" ]]
 
-kubectl get secret -o yaml -n vino-system default-vino-test-cr-worker
+kubectl get -o yaml -n vino-system \
+    $(kubectl get secret -o name -n vino-system | grep network-data)
 kubectl get secret -o yaml -n vino-system default-vino-test-cr-credentials

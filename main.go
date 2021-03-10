@@ -32,6 +32,7 @@ import (
 
 	vinov1 "vino/pkg/api/v1"
 	"vino/pkg/controllers"
+	"vino/pkg/ipam"
 )
 
 var (
@@ -80,9 +81,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	ipammer := ipam.NewIpam(ctrl.Log.WithName("IPAM"), mgr.GetClient(),
+		os.Getenv("RUNTIME_NAMESPACE"))
+
 	if err = (&controllers.VinoReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Ipam:   ipammer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Vino")
 		os.Exit(1)

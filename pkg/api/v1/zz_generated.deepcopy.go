@@ -308,11 +308,13 @@ func (in *NodeSelector) DeepCopy() *NodeSelector {
 func (in *NodeSet) DeepCopyInto(out *NodeSet) {
 	*out = *in
 	in.NodeLabel.DeepCopyInto(&out.NodeLabel)
-	out.LibvirtTemplate = in.LibvirtTemplate
-	if in.NetworkInterface != nil {
-		in, out := &in.NetworkInterface, &out.NetworkInterface
-		*out = new(NetworkInterface)
-		(*in).DeepCopyInto(*out)
+	out.LibvirtTemplateDefinition = in.LibvirtTemplateDefinition
+	if in.NetworkInterfaces != nil {
+		in, out := &in.NetworkInterfaces, &out.NetworkInterfaces
+		*out = make([]NetworkInterface, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.DiskDrives != nil {
 		in, out := &in.DiskDrives, &out.DiskDrives
@@ -463,8 +465,8 @@ func (in *VinoSpec) DeepCopyInto(out *VinoSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Node != nil {
-		in, out := &in.Node, &out.Node
+	if in.Nodes != nil {
+		in, out := &in.Nodes, &out.Nodes
 		*out = make([]NodeSet, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])

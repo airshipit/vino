@@ -1,3 +1,6 @@
+# Note: IPPools are intended to be created and managed by ViNO itself.
+# ViNO will perform IPAM based on end user input in the ViNO CR.
+# This resource here is just a reference.
 apiVersion: airship.airshipit.org/v1
 kind: IPPool
 metadata:

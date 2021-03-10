@@ -44,7 +44,7 @@ type VinoSpec struct {
 	// Define network parameters
 	Networks []Network `json:"networks,omitempty"`
 	// Define node details
-	Node []NodeSet `json:"nodes,omitempty"`
+	Nodes []NodeSet `json:"nodes,omitempty"`
 	// DaemonSetOptions defines how vino will spawn daemonset on nodes
 	DaemonSetOptions DaemonSetOptions `json:"daemonSetOptions,omitempty"`
 	// VMBridge defines the single interface name to be used as a bridge for VMs
@@ -78,6 +78,7 @@ type Network struct {
 	//Network Parameter defined
 	Name            string     `json:"name,omitempty"`
 	SubNet          string     `json:"subnet,omitempty"`
+	Type            string     `json:"type,omitempty"`
 	AllocationStart string     `json:"allocationStart,omitempty"`
 	AllocationStop  string     `json:"allocationStop,omitempty"`
 	DNSServers      []string   `json:"dns_servers,omitempty"`
@@ -86,20 +87,21 @@ type Network struct {
 
 // VMRoutes defined
 type VMRoutes struct {
-	To  string `json:"to,omitempty"`
-	Via string `json:"via,omitempty"`
+	Network string `json:"network,omitempty"`
+	Netmask string `json:"netmask,omitempty"`
+	Gateway string `json:"gateway,omitempty"`
 }
 
 //NodeSet node definitions
 type NodeSet struct {
 	//Parameter for Node master or worker-standard
-	Name             string              `json:"name,omitempty"`
-	Count            int                 `json:"count,omitempty"`
-	NodeLabel        VMNodeFlavor        `json:"labels,omitempty"`
-	LibvirtTemplate  NamespacedName      `json:"libvirtTemplate,omitempty"`
-	NetworkInterface *NetworkInterface   `json:"networkInterfaces,omitempty"`
-	DiskDrives       *DiskDrivesTemplate `json:"diskDrives,omitempty"`
-	// NetworkDataTemplate reference a Secret containing a template key
+	Name                      string              `json:"name,omitempty"`
+	Count                     int                 `json:"count,omitempty"`
+	NodeLabel                 VMNodeFlavor        `json:"labels,omitempty"`
+	LibvirtTemplateDefinition NamespacedName      `json:"libvirtTemplate,omitempty"`
+	NetworkInterfaces         []NetworkInterface  `json:"networkInterfaces,omitempty"`
+	DiskDrives                *DiskDrivesTemplate `json:"diskDrives,omitempty"`
+	// NetworkDataTemplate must have a template key
 	NetworkDataTemplate NamespacedName `json:"networkDataTemplate,omitempty"`
 }
 

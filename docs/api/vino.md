@@ -541,6 +541,16 @@ string
 </tr>
 <tr>
 <td>
+<code>type</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>allocationStart</code><br>
 <em>
 string
@@ -756,7 +766,7 @@ NamespacedName
 <code>networkInterfaces</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.NetworkInterface">
-NetworkInterface
+[]NetworkInterface
 </a>
 </em>
 </td>
@@ -785,7 +795,7 @@ NamespacedName
 </em>
 </td>
 <td>
-<p>NetworkDataTemplate reference a Secret containing a template key</p>
+<p>NetworkDataTemplate must have a template key</p>
 </td>
 </tr>
 </tbody>
@@ -883,7 +893,7 @@ map[string]string
 <tbody>
 <tr>
 <td>
-<code>to</code><br>
+<code>network</code><br>
 <em>
 string
 </em>
@@ -893,7 +903,17 @@ string
 </tr>
 <tr>
 <td>
-<code>via</code><br>
+<code>netmask</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>gateway</code><br>
 <em>
 string
 </em>

@@ -35,6 +35,18 @@ rules:
 - apiGroups:
   - airship.airshipit.org
   resources:
+  - ippools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - airship.airshipit.org
+  resources:
   - vinoes
   verbs:
   - create
