@@ -31,6 +31,7 @@ spec:
           gateway: 169.0.0.1
       allocationStart: 169.0.0.10
       allocationStop: 169.0.0.254
+      macPrefix: "0A:00:00:00:00:00"
 
   vmBridge: lo
   nodes:

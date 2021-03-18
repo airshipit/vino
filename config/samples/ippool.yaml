@@ -7,6 +7,8 @@ metadata:
   name: ippool-sample
 spec:
   subnet: 10.0.0.0/16
+  macPrefix: "02:00:00:00:00:00"
+  nextMAC: "02:00:00:00:00:03"
   ranges:
     - start: 10.0.0.1
       stop:  10.0.0.9
@@ -15,7 +17,10 @@ spec:
   allocatedIPs:
     - allocatedTo: default-vino-test-cr-leviathan-worker-0
       ip: 10.0.0.1
+      mac: "02:00:00:00:00:00"
     - allocatedTo: default-vino-test-cr-leviathan-worker-1
       ip: 10.0.0.2
+      mac: "02:00:00:00:00:01"
     - allocatedTo: default-vino-test-cr-leviathan-worker-2
       ip: 10.0.1.1
+      mac: "02:00:00:00:00:02"

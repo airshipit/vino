@@ -29,11 +29,17 @@ type IPPoolSpec struct {
 	Subnet       string        `json:"subnet"`
 	Ranges       []Range       `json:"ranges"`
 	AllocatedIPs []AllocatedIP `json:"allocatedIPs"`
+	// MACPrefix defines the MAC prefix to use for VM mac addresses
+	MACPrefix string `json:"macPrefix"`
+	// NextMAC indicates the next MAC address (in sequence) that
+	// will be provisioned to a VM in this Subnet
+	NextMAC string `json:"nextMAC"`
 }
 
-// AllocatedIP Allocates an IP to an entity
+// AllocatedIP Allocates an IP and MAC address to an entity
 type AllocatedIP struct {
 	IP          string `json:"ip"`
+	MAC         string `json:"mac"`
 	AllocatedTo string `json:"allocatedTo"`
 }
 

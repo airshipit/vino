@@ -54,7 +54,13 @@ type ErrInvalidIPAddress struct {
 	IP string
 }
 
-// ErrNotSupported returned if unsupported address types are used
+// ErrInvalidMACAddress returned if a MAC address string is malformed
+type ErrInvalidMACAddress struct {
+	MAC string
+}
+
+// ErrNotSupported returned if unsupported address types are used,
+// or if a change to immutable fields is attempted
 type ErrNotSupported struct {
 	Message string
 }
@@ -85,6 +91,10 @@ func (e ErrSubnetRangeExhausted) Error() string {
 
 func (e ErrInvalidIPAddress) Error() string {
 	return fmt.Sprintf("IP address %s is invalid", e.IP)
+}
+
+func (e ErrInvalidMACAddress) Error() string {
+	return fmt.Sprintf("MAC address %s is invalid", e.MAC)
 }
 
 func (e ErrNotSupported) Error() string {

@@ -90,6 +90,13 @@ spec:
                     items:
                       type: string
                     type: array
+                  macPrefix:
+                    description: MACPrefix defines the zero-padded MAC prefix to use
+                      for VM mac addresses, and is the first address that will be
+                      allocated sequentially to VMs in this network. If omitted, a
+                      default private MAC prefix will be used. The prefix should be
+                      specified in full MAC notation, e.g. 06:42:42:00:00:00
+                    type: string
                   name:
                     description: Network Parameter defined
                     type: string

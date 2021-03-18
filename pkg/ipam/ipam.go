@@ -46,7 +46,7 @@ func NewIpam(logger logr.Logger, client client.Client, namespace string) *Ipam {
 	}
 }
 
-// Create a new Range, validating its input
+// NewRange creates a new Range, validating its input
 func NewRange(start string, stop string) (vinov1.Range, error) {
 	r := vinov1.Range{Start: start, Stop: stop}
 	a, e := ipStringToInt(start)
@@ -69,8 +69,9 @@ func NewRange(start string, stop string) (vinov1.Range, error) {
 // subnet range than what is already allocated -- i.e. this function should be idempotent
 // against allocating the exact same subnet+range multiple times.
 // TODO error: invalid range for subnet
-func (i *Ipam) AddSubnetRange(ctx context.Context, subnet string, subnetRange vinov1.Range) error {
-	logger := i.Log.WithValues("subnet", subnet, "subnetRange", subnetRange)
+func (i *Ipam) AddSubnetRange(ctx context.Context, subnet string, subnetRange vinov1.Range,
+	macPrefix string) error {
+	logger := i.Log.WithValues("subnet", subnet, "subnetRange", subnetRange, "macPrefix", macPrefix)
 	// Does the subnet already exist? (this is fine)
 	ippools, err := i.getIPPools(ctx)
 	if err != nil {
@@ -80,13 +81,22 @@ func (i *Ipam) AddSubnetRange(ctx context.Context, subnet string, subnetRange vi
 	ippool, exists := ippools[subnet]
 	if !exists {
 		logger.Info("IPAM creating subnet")
+		_, err = macStringToInt(macPrefix) // mac format validation
+		if err != nil {
+			return err
+		}
 		ippool = &vinov1.IPPoolSpec{
 			Subnet:       subnet,
 			Ranges:       []vinov1.Range{},
 			AllocatedIPs: []vinov1.AllocatedIP{},
+			MACPrefix:    macPrefix,
+			NextMAC:      macPrefix,
 		}
 		ippools[subnet] = ippool
+	} else if ippool.MACPrefix != macPrefix {
+		return ErrNotSupported{Message: "Cannot change immutable field `macPrefix`"}
 	}
+
 	// Add the IPAM range to the subnet if it doesn't exist already
 	exists = false
 	for _, existingSubnetRange := range ippools[subnet].Ranges {
@@ -112,14 +122,14 @@ func (i *Ipam) AddSubnetRange(ctx context.Context, subnet string, subnetRange vi
 //              allocated IP.  If the same entity requests another IP, it will be given
 //              the same one.  I.e. this function is idempotent for the same allocatedTo.
 func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1.Range,
-	allocatedTo string) (string, error) {
+	allocatedTo string) (allocatedIP string, allocatedMAC string, err error) {
 	ippools, err := i.getIPPools(ctx)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	ippool, exists := ippools[subnet]
 	if !exists {
-		return "", ErrSubnetNotAllocated{Subnet: subnet}
+		return "", "", ErrSubnetNotAllocated{Subnet: subnet}
 	}
 	// Make sure the range has been allocated within the subnet
 	var match bool
@@ -130,39 +140,50 @@ func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1
 		}
 	}
 	if !match {
-		return "", ErrSubnetRangeNotAllocated{Subnet: subnet, SubnetRange: subnetRange}
+		return "", "", ErrSubnetRangeNotAllocated{Subnet: subnet, SubnetRange: subnetRange}
 	}
 
 	// If an IP has already been allocated to this entity, return it
-	ip := findAlreadyAllocatedIP(ippool, allocatedTo)
+	ip, mac := findAlreadyAllocatedIP(ippool, allocatedTo)
 
 	// No IP already allocated, so allocate a new IP
 	if ip == "" {
+		// Find an IP
 		ip, err = findFreeIPInRange(ippool, subnetRange)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		i.Log.Info("Allocating IP", "ip", ip, "subnet", subnet, "subnetRange", subnetRange)
 		ippool.AllocatedIPs = append(ippool.AllocatedIPs, vinov1.AllocatedIP{IP: ip, AllocatedTo: allocatedTo})
+
+		// Find a MAC
+		mac = ippool.NextMAC
+		macInt, err := macStringToInt(ippool.NextMAC)
+		if err != nil {
+			return "", "", err
+		}
+		ippool.NextMAC = intToMACString(macInt + 1)
+
+		// Save the updated IPPool
 		err = i.applyIPPool(ctx, *ippool)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
-	return ip, nil
+	return ip, mac, nil
 }
 
 // This returns an IP already allocated to the entity specified by `allocatedTo`
 // if it exists within the requested ippool/subnet, and a blank string
 // if no IP is already allocated.
-func findAlreadyAllocatedIP(ippool *vinov1.IPPoolSpec, allocatedTo string) string {
+func findAlreadyAllocatedIP(ippool *vinov1.IPPoolSpec, allocatedTo string) (ip string, mac string) {
 	for _, allocatedIP := range ippool.AllocatedIPs {
 		if allocatedIP.AllocatedTo == allocatedTo {
-			return allocatedIP.IP
+			return allocatedIP.IP, allocatedIP.MAC
 		}
 	}
-	return ""
+	return "", ""
 }
 
 // This converts IP ranges/addresses into iterable ints,
@@ -235,6 +256,24 @@ func ipStringToInt(ipString string) (uint64, error) {
 	return byteArrayToInt(bytes), nil
 }
 
+// Convert a MAC address in xx:xx:xx:xx:xx:xx format to an easily iterable uint64.
+func macStringToInt(macString string) (uint64, error) {
+	// ParseMAC parses various flavors of macs; we restrict to vanilla ethernet
+	regex := regexp.MustCompile(`[..:..:..:..:..:..]`)
+	if !regex.MatchString(macString) {
+		return 0, ErrInvalidMACAddress{macString}
+	}
+
+	bytes, err := net.ParseMAC(macString)
+	if err != nil {
+		return 0, ErrInvalidMACAddress{macString}
+	}
+
+	// Pad to 8 bytes for the uint64 conversion
+	bytes = append(make([]byte, 2), bytes...)
+	return byteArrayToInt(bytes), nil
+}
+
 func intToIPv4String(i uint64) string {
 	bytes := intToByteArray(i)
 	ip := net.IPv4(bytes[4], bytes[5], bytes[6], bytes[7])
@@ -247,6 +286,13 @@ func intToIPv6String(i uint64) string {
 	bytes := append(intToByteArray(i), make([]byte, 8)...)
 	var ip net.IP = bytes
 	return ip.String()
+}
+
+func intToMACString(i uint64) string {
+	bytes := intToByteArray(i)
+	// lop off the first two bytes to get a 6-byte array
+	var hardwareAddress net.HardwareAddr = bytes[2:]
+	return hardwareAddress.String()
 }
 
 // Convert an uint64 into 8 bytes, with most significant byte first

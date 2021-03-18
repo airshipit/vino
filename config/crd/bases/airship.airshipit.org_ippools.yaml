@@ -39,17 +39,27 @@ spec:
           properties:
             allocatedIPs:
               items:
-                description: AllocatedIP Allocates an IP to an entity
+                description: AllocatedIP Allocates an IP and MAC address to an entity
                 properties:
                   allocatedTo:
                     type: string
                   ip:
                     type: string
+                  mac:
+                    type: string
                 required:
                 - allocatedTo
                 - ip
+                - mac
                 type: object
               type: array
+            macPrefix:
+              description: MACPrefix defines the MAC prefix to use for VM mac addresses
+              type: string
+            nextMAC:
+              description: NextMAC indicates the next MAC address (in sequence) that
+                will be provisioned to a VM in this Subnet
+              type: string
             ranges:
               items:
                 description: Range has (inclusive) bounds within a subnet from which
@@ -68,6 +78,8 @@ spec:
               type: string
           required:
           - allocatedIPs
+          - macPrefix
+          - nextMAC
           - ranges
           - subnet
           type: object

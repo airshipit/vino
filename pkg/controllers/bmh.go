@@ -34,6 +34,12 @@ import (
 	"vino/pkg/ipam"
 )
 
+const (
+	// DefaultMACPrefix is a private RFC 1918 MAC range used if
+	// no MACPrefix is specified for a network in the ViNO CR
+	DefaultMACPrefix = "02:00:00:00:00:00"
+)
+
 type networkTemplateValues struct {
 	Node      vinov1.NodeSet // the specific node type to be templated
 	BMHName   string
@@ -42,7 +48,8 @@ type networkTemplateValues struct {
 }
 
 type generatedValues struct {
-	IPAddresses map[string]string // a map of network names to IP addresses
+	IPAddresses  map[string]string // a map of network names to IP addresses
+	MACAddresses map[string]string // a map of network interface (link) names to MACs
 }
 
 func (r *VinoReconciler) ensureBMHs(ctx context.Context, vino *vinov1.Vino) error {
@@ -117,12 +124,18 @@ func (r *VinoReconciler) reconcileBMHs(ctx context.Context, vino *vinov1.Vino) e
 }
 
 func (r *VinoReconciler) createIpamNetworks(ctx context.Context, vino *vinov1.Vino) error {
+	logger := logr.FromContext(ctx)
 	for _, network := range vino.Spec.Networks {
 		subnetRange, err := ipam.NewRange(network.AllocationStart, network.AllocationStop)
 		if err != nil {
 			return err
 		}
-		err = r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange)
+		if network.MACPrefix == "" {
+			logger.Info("No MACPrefix provided; using default MACPrefix %s for network %s",
+				DefaultMACPrefix, network.Name)
+			network.MACPrefix = DefaultMACPrefix
+		}
+		err = r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange, network.MACPrefix)
 		if err != nil {
 			return err
 		}
@@ -131,8 +144,8 @@ func (r *VinoReconciler) createIpamNetworks(ctx context.Context, vino *vinov1.Vi
 }
 
 func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino, pod corev1.Pod) error {
+	logger := logr.FromContext(ctx)
 	for _, node := range vino.Spec.Nodes {
-		logger := logr.FromContext(ctx)
 		logger.Info("Creating BMHs for vino node", "node name", node.Name, "count", node.Count)
 		prefix := r.getBMHNodePrefix(vino, pod)
 		for i := 0; i < node.Count; i++ {
@@ -146,6 +159,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 
 			// Allocate an IP for each of this BMH's network interfaces
 			ipAddresses := map[string]string{}
+			macAddresses := map[string]string{}
 			for _, iface := range node.NetworkInterfaces {
 				networkName := iface.NetworkName
 				subnet := ""
@@ -165,11 +179,12 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 					return fmt.Errorf("Interface %s doesn't have a matching network defined", networkName)
 				}
 				ipAllocatedTo := fmt.Sprintf("%s/%s", bmhName, iface.NetworkName)
-				ipAddress, er := r.Ipam.AllocateIP(ctx, subnet, subnetRange, ipAllocatedTo)
+				ipAddress, macAddress, er := r.Ipam.AllocateIP(ctx, subnet, subnetRange, ipAllocatedTo)
 				if er != nil {
 					return er
 				}
 				ipAddresses[networkName] = ipAddress
+				macAddresses[iface.Name] = macAddress
 			}
 
 			values := networkTemplateValues{
@@ -177,7 +192,8 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				BMHName:  bmhName,
 				Networks: vino.Spec.Networks,
 				Generated: generatedValues{
-					IPAddresses: ipAddresses,
+					IPAddresses:  ipAddresses,
+					MACAddresses: macAddresses,
 				},
 			}
 			netData, netDataNs, err := r.reconcileBMHNetworkData(ctx, node, vino, values)

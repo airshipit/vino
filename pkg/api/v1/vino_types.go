@@ -83,6 +83,13 @@ type Network struct {
 	AllocationStop  string     `json:"allocationStop,omitempty"`
 	DNSServers      []string   `json:"dns_servers,omitempty"`
 	Routes          []VMRoutes `json:"routes,omitempty"`
+	// MACPrefix defines the zero-padded MAC prefix to use for
+	// VM mac addresses, and is the first address that will be
+	// allocated sequentially to VMs in this network.
+	// If omitted, a default private MAC prefix will be used.
+	// The prefix should be specified in full MAC notation, e.g.
+	// 06:42:42:00:00:00
+	MACPrefix string `json:"macPrefix,omitempty"`
 }
 
 // VMRoutes defined

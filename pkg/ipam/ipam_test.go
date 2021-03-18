@@ -43,6 +43,8 @@ func SetUpMockClient(ctx context.Context, ctrl *gomock.Controller) *test.MockCli
 					Ranges: []vinov1.Range{
 						{Start: "10.0.1.0", Stop: "10.0.1.9"},
 					},
+					MACPrefix: "02:00:00:00:00:00",
+					NextMAC:   "02:00:00:00:00:00",
 				},
 			},
 			{
@@ -51,6 +53,8 @@ func SetUpMockClient(ctx context.Context, ctrl *gomock.Controller) *test.MockCli
 					Ranges: []vinov1.Range{
 						{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:0009::"},
 					},
+					MACPrefix: "06:00:00:00:00:00",
+					NextMAC:   "06:00:00:00:00:00",
 				},
 			},
 			{
@@ -60,8 +64,10 @@ func SetUpMockClient(ctx context.Context, ctrl *gomock.Controller) *test.MockCli
 						{Start: "192.168.0.0", Stop: "192.168.0.0"},
 					},
 					AllocatedIPs: []vinov1.AllocatedIP{
-						{IP: "192.168.0.0", AllocatedTo: "old-vm-name"},
+						{IP: "192.168.0.0", MAC: "02:00:00:00:00:00", AllocatedTo: "old-vm-name"},
 					},
+					MACPrefix: "02:00:00:00:00:00",
+					NextMAC:   "02:00:00:00:00:01",
 				},
 			},
 			{
@@ -71,8 +77,10 @@ func SetUpMockClient(ctx context.Context, ctrl *gomock.Controller) *test.MockCli
 						{Start: "2600:1700:b031:0000::", Stop: "2600:1700:b031:0000::"},
 					},
 					AllocatedIPs: []vinov1.AllocatedIP{
-						{IP: "2600:1700:b031:0000::", AllocatedTo: "old-vm-name"},
+						{IP: "2600:1700:b031:0000::", MAC: "06:00:00:00:00:00", AllocatedTo: "old-vm-name"},
 					},
+					MACPrefix: "06:00:00:00:00:00",
+					NextMAC:   "06:00:00:00:00:01",
 				},
 			},
 		},
@@ -87,20 +95,22 @@ func SetUpMockClient(ctx context.Context, ctrl *gomock.Controller) *test.MockCli
 
 func TestAllocateIP(t *testing.T) {
 	tests := []struct {
-		name, subnet, allocatedTo, expectedErr string
-		subnetRange                            vinov1.Range
+		name, subnet, allocatedTo, expectedErr, expectedMAC string
+		subnetRange                                         vinov1.Range
 	}{
 		{
 			name:        "success ipv4",
 			subnet:      "10.0.0.0/16",
 			subnetRange: vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"},
 			allocatedTo: "new-vm-name",
+			expectedMAC: "02:00:00:00:00:00",
 		},
 		{
 			name:        "success ipv6",
 			subnet:      "2600:1700:b030:0000::/72",
 			subnetRange: vinov1.Range{Start: "2600:1700:b030:0000::", Stop: "2600:1700:b030:0009::"},
 			allocatedTo: "new-vm-name",
+			expectedMAC: "06:00:00:00:00:00",
 		},
 		{
 			name:        "error subnet not allocated ipv4",
@@ -136,6 +146,7 @@ func TestAllocateIP(t *testing.T) {
 			subnet:      "192.168.0.0/1",
 			subnetRange: vinov1.Range{Start: "192.168.0.0", Stop: "192.168.0.0"},
 			allocatedTo: "old-vm-name",
+			expectedMAC: "02:00:00:00:00:00",
 		},
 		{
 			name:        "error range exhausted ipv4",
@@ -165,14 +176,16 @@ func TestAllocateIP(t *testing.T) {
 			ipammer := NewIpam(log.Log, m, "vino-system")
 			ipammer.Log = log.Log
 
-			ip, err := ipammer.AllocateIP(ctx, tt.subnet, tt.subnetRange, tt.allocatedTo)
+			ip, mac, err := ipammer.AllocateIP(ctx, tt.subnet, tt.subnetRange, tt.allocatedTo)
 			if tt.expectedErr != "" {
 				require.Error(t, err)
 				assert.Equal(t, "", ip)
+				assert.Equal(t, "", mac)
 				assert.Contains(t, err.Error(), tt.expectedErr)
 			} else {
 				require.NoError(t, err)
 				assert.NotEmpty(t, ip)
+				assert.Equal(t, tt.expectedMAC, mac)
 			}
 		})
 	}
@@ -192,19 +205,19 @@ func TestNewRange(t *testing.T) {
 			name:        "error stop less than start",
 			start:       "10.0.0.2",
 			stop:        "10.0.0.1",
-			expectedErr: "is invalid",
+			expectedErr: "IPAM range",
 		},
 		{
 			name:        "error bad start",
 			start:       "10.0.0.2.x",
 			stop:        "10.0.0.1",
-			expectedErr: "is invalid",
+			expectedErr: "IP address",
 		},
 		{
 			name:        "error bad stop",
 			start:       "10.0.0.2",
 			stop:        "10.0.0.1.x",
-			expectedErr: "is invalid",
+			expectedErr: "IP address",
 		},
 	}
 	for _, tt := range tests {
@@ -226,14 +239,29 @@ func TestNewRange(t *testing.T) {
 // Test some error handling that is not captured by TestAllocateIP
 func TestAddSubnetRange(t *testing.T) {
 	tests := []struct {
-		name, subnet, expectedErr string
-		subnetRange               vinov1.Range
+		name, subnet, macPrefix, expectedErr string
+		subnetRange                          vinov1.Range
 	}{
 		{
 			name:        "success",
-			subnet:      "10.0.0.0/16",
-			subnetRange: vinov1.Range{Start: "10.0.2.0", Stop: "10.0.2.9"},
+			subnet:      "20.0.0.0/16",
+			subnetRange: vinov1.Range{Start: "20.0.2.0", Stop: "20.0.2.9"},
+			macPrefix:   "02:00:00:00:00:00",
 			expectedErr: "",
+		},
+		{
+			name:        "error bad mac",
+			subnet:      "20.0.0.0/16",
+			subnetRange: vinov1.Range{Start: "20.0.2.0", Stop: "20.0.2.9"},
+			macPrefix:   "",
+			expectedErr: "MAC address",
+		},
+		{
+			name:        "error macPrefix is immutable",
+			subnet:      "10.0.0.0/16",
+			subnetRange: vinov1.Range{Start: "10.0.1.0", Stop: "10.0.1.9"},
+			macPrefix:   "02:00:00:00:00:0`",
+			expectedErr: "immutable",
 		},
 		// TODO: check for partially overlapping ranges and subnets
 	}
@@ -248,7 +276,7 @@ func TestAddSubnetRange(t *testing.T) {
 			m := SetUpMockClient(ctx, ctrl)
 			ipammer := NewIpam(log.Log, m, "vino-system")
 
-			err := ipammer.AddSubnetRange(ctx, tt.subnet, tt.subnetRange)
+			err := ipammer.AddSubnetRange(ctx, tt.subnet, tt.subnetRange, tt.macPrefix)
 			if tt.expectedErr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr)
@@ -396,6 +424,48 @@ func TestIPStringToInt(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			actual, err := ipStringToInt(tt.in)
+			if tt.expectedErr != "" {
+				require.Error(t, err)
+				assert.Empty(t, tt.out)
+				assert.Contains(t, err.Error(), tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.out, actual)
+			}
+		})
+	}
+}
+
+func TestMACStringToInt(t *testing.T) {
+	tests := []struct {
+		name        string
+		in          string
+		out         uint64
+		expectedErr string
+	}{
+		{
+			name: "valid MAC address",
+			in:   "00:00:00:00:01:01",
+			out:  0x101,
+		},
+		{
+			name:        "invalid MAC address",
+			in:          "00:00:00:00:01:01:00",
+			out:         0,
+			expectedErr: " is invalid",
+		},
+		{
+			name:        "blank MAC address",
+			in:          "",
+			out:         0,
+			expectedErr: " is invalid",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := macStringToInt(tt.in)
 			if tt.expectedErr != "" {
 				require.Error(t, err)
 				assert.Empty(t, tt.out)

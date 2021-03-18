@@ -15,7 +15,7 @@ Resource Types:
 (<em>Appears on:</em>
 <a href="#airship.airshipit.org/v1.IPPoolSpec">IPPoolSpec</a>)
 </p>
-<p>AllocatedIP Allocates an IP to an entity</p>
+<p>AllocatedIP Allocates an IP and MAC address to an entity</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -29,6 +29,16 @@ Resource Types:
 <tr>
 <td>
 <code>ip</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>mac</code><br>
 <em>
 string
 </em>
@@ -375,6 +385,29 @@ string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>macPrefix</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>MACPrefix defines the MAC prefix to use for VM mac addresses</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nextMAC</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NextMAC indicates the next MAC address (in sequence) that
+will be provisioned to a VM in this Subnet</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -446,6 +479,29 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>macPrefix</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>MACPrefix defines the MAC prefix to use for VM mac addresses</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nextMAC</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NextMAC indicates the next MAC address (in sequence) that
+will be provisioned to a VM in this Subnet</p>
 </td>
 </tr>
 </tbody>
@@ -589,6 +645,22 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>macPrefix</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>MACPrefix defines the zero-padded MAC prefix to use for
+VM mac addresses, and is the first address that will be
+allocated sequentially to VMs in this network.
+If omitted, a default private MAC prefix will be used.
+The prefix should be specified in full MAC notation, e.g.
+06:42:42:00:00:00</p>
 </td>
 </tr>
 </tbody>
