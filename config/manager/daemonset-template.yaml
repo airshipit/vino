@@ -19,7 +19,7 @@ spec:
         - name: libvirt
           command:
             - /tmp/libvirt.sh
-          image: quay.io/teoyaomiqui/libvirt
+          image: quay.io/airshipit/libvirt
           securityContext:
             privileged: true
             runAsUser: 0
