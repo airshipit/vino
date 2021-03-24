@@ -111,6 +111,12 @@ spec:
                     type: string
                 type: object
               type: array
+            nodeLabelKeysToCopy:
+              description: NodeLabelKeysToCopy vino controller will get these labels
+                from k8s nodes and place them on BMHs that correspond to this node
+              items:
+                type: string
+              type: array
             nodeSelector:
               description: Define nodelabel parameters
               properties:
@@ -127,6 +133,13 @@ spec:
               items:
                 description: NodeSet node definitions
                 properties:
+                  bmhLabels:
+                    additionalProperties:
+                      type: string
+                    description: BMHLabels labels will be copied directly to BMHs
+                      that will be created These labels will override keys from k8s
+                      node, that are specified in vino.NodeLabelKeysToCopy
+                    type: object
                   count:
                     type: integer
                   diskDrives:
@@ -146,14 +159,6 @@ spec:
                         type: string
                       type:
                         type: string
-                    type: object
-                  labels:
-                    description: VMNodeFlavor labels for node to be annotated
-                    properties:
-                      vmFlavor:
-                        additionalProperties:
-                          type: string
-                        type: object
                     type: object
                   libvirtTemplate:
                     description: NamespacedName to be used to spawn VMs

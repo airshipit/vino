@@ -12,6 +12,14 @@ function vinoDebugInfo () {
     exit 1
 }
 
+server_label="airshipit.org/server=s1"
+rack_label="airshipit.org/rack=r1"
+copyLabel="airshipit.org/k8s-role=worker"
+
+# Label all nodes with the same rack/label. We are ok with this for this simple test.
+kubectl label node --overwrite=true --all $server_label $rack_label
+
+
 kubectl apply -f config/samples/vino_cr.yaml
 kubectl apply -f config/samples/ippool.yaml
 kubectl apply -f config/samples/network-template-secret.yaml
@@ -44,11 +52,13 @@ if ! kubectl -n vino-system rollout status ds default-vino-test-cr --timeout=10s
     vinoDebugInfo
 fi
 
-bmhCount=$(kubectl get baremetalhosts -n vino-system -o name | wc -l)
+bmhCount=$(kubectl get baremetalhosts -n vino-system -l "$server_label,$server_label,$copyLabel" -o name | wc -l)
 
 # with this setup set up, exactly 3 BMHs must have been created by VINO controller
 
 [[ "$bmhCount" -eq "3" ]]
+
+kubectl get baremetalhosts -n vino-system --show-labels=true
 
 kubectl get -o yaml -n vino-system \
     $(kubectl get secret -o name -n vino-system | grep network-data)

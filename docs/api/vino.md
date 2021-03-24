@@ -739,14 +739,14 @@ int
 </tr>
 <tr>
 <td>
-<code>labels</code><br>
+<code>bmhLabels</code><br>
 <em>
-<a href="#airship.airshipit.org/v1.VMNodeFlavor">
-VMNodeFlavor
-</a>
+map[string]string
 </em>
 </td>
 <td>
+<p>BMHLabels labels will be copied directly to BMHs that will be created
+These labels will override keys from k8s node, that are specified in vino.NodeLabelKeysToCopy</p>
 </td>
 </tr>
 <tr>
@@ -834,37 +834,6 @@ string
 <code>stop</code><br>
 <em>
 string
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="airship.airshipit.org/v1.VMNodeFlavor">VMNodeFlavor
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#airship.airshipit.org/v1.NodeSet">NodeSet</a>)
-</p>
-<p>VMNodeFlavor labels for node to be annotated</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>vmFlavor</code><br>
-<em>
-map[string]string
 </em>
 </td>
 <td>
@@ -1055,6 +1024,18 @@ BMCCredentials
 sushy tools will use these credentials as well, to set up authentication</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nodeLabelKeysToCopy</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>NodeLabelKeysToCopy vino controller will get these labels from k8s nodes
+and place them on BMHs that correspond to this node</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1179,6 +1160,18 @@ BMCCredentials
 <td>
 <p>BMCCredentials contain credentials that will be used to create BMH nodes
 sushy tools will use these credentials as well, to set up authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeLabelKeysToCopy</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>NodeLabelKeysToCopy vino controller will get these labels from k8s nodes
+and place them on BMHs that correspond to this node</p>
 </td>
 </tr>
 </tbody>
