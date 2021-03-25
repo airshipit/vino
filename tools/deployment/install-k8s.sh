@@ -3,7 +3,7 @@
 set -ex
 
 : ${KUBE_VERSION:="v1.20.2"}
-: ${MINIKUBE_VERSION:="v1.16.0"}
+: ${MINIKUBE_VERSION:="v1.18.1"}
 : ${UPSTREAM_DNS_SERVER:="8.8.4.4"}
 : ${DNS_DOMAIN:="cluster.local"}
 : ${CALICO_VERSION:="v3.17"}
@@ -33,10 +33,6 @@ sudo -E apt-get install -y \
   conntrack \
   libffi-dev
 
-# Prepare tmpfs for etcd
-sudo mkdir -p /data
-sudo mount -t tmpfs -o size=512m tmpfs /data
-
 # Download calico manifest
 if [ ! -f "$CNI_MANIFEST_PATH" ]; then
   curl -Ss https://docs.projectcalico.org/"${CALICO_VERSION}"/manifests/calico.yaml -o ${CNI_MANIFEST_PATH}
@@ -47,8 +43,8 @@ URL="https://storage.googleapis.com"
 sudo -E curl -sSLo /usr/local/bin/minikube "${URL}"/minikube/releases/"${MINIKUBE_VERSION}"/minikube-linux-amd64
 sudo -E curl -sSLo /usr/local/bin/kubectl "${URL}"/kubernetes-release/release/"${KUBE_VERSION}"/bin/linux/amd64/kubectl
 
-sudo -E chmod +x /usr/local/bin/minikube
-sudo -E chmod +x /usr/local/bin/kubectl
+sudo chmod +x /usr/local/bin/minikube
+sudo chmod +x /usr/local/bin/kubectl
 
 export CHANGE_MINIKUBE_NONE_USER=true
 export MINIKUBE_IN_STYLE=false
@@ -66,6 +62,8 @@ sudo -E minikube start \
   --extra-config=controller-manager.cluster-cidr=192.168.0.0/16 \
   --extra-config=kubeadm.pod-network-cidr=192.168.0.0/16 \
   --extra-config=kubelet.resolv-conf=/run/systemd/resolve/resolv.conf
+
+sudo chown -R "${USER}:${USER}" "${HOME}/.kube" "${HOME}/.minikube"
 
 kubectl get nodes -o wide
 kubectl get pod -A
