@@ -201,10 +201,13 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				return err
 			}
 
-			// TODO extend this function to return server/rack labels as well
-			bmcAddr, err := r.getBMCAddress(ctx, pod, roleSuffix)
+			bmcAddr, labels, err := r.getBMCAddressAndLabels(ctx, pod, vino.Spec.NodeLabelKeysToCopy, roleSuffix)
 			if err != nil {
 				return err
+			}
+
+			for label, value := range node.BMHLabels {
+				labels[label] = value
 			}
 
 			bmh := &metal3.BareMetalHost{
@@ -213,7 +216,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 					Namespace: getRuntimeNamespace(),
 					// TODO add rack and server labels, when we crearly define mechanism
 					// which labels we are copying
-					Labels: node.NodeLabel.VMFlavor,
+					Labels: labels,
 				},
 				Spec: metal3.BareMetalHostSpec{
 					NetworkData: &corev1.SecretReference{
@@ -243,10 +246,13 @@ func (r *VinoReconciler) getBMHNodePrefix(vino *vinov1.Vino, pod corev1.Pod) str
 	return fmt.Sprintf("%s-%s-%s", vino.Namespace, vino.Name, pod.Spec.NodeName)
 }
 
-func (r *VinoReconciler) getBMCAddress(
+func (r *VinoReconciler) getBMCAddressAndLabels(
 	ctx context.Context,
 	pod corev1.Pod,
-	vmName string) (string, error) {
+	labelKeys []string,
+	vmName string) (string, map[string]string, error) {
+	logger := logr.FromContext(ctx).WithValues("k8s node", pod.Spec.NodeName)
+
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: pod.Spec.NodeName,
@@ -254,15 +260,25 @@ func (r *VinoReconciler) getBMCAddress(
 	}
 	err := r.Get(ctx, client.ObjectKeyFromObject(node), node)
 	if err != nil {
-		return "", err
+		return "", nil, err
+	}
+
+	labels := map[string]string{}
+
+	for _, key := range labelKeys {
+		value, ok := node.Labels[key]
+		if !ok {
+			logger.Info("Kubernetes node missing label from vino CR CopyNodeLabelKeys field", "label", key)
+		}
+		labels[key] = value
 	}
 
 	for _, addr := range node.Status.Addresses {
 		if addr.Type == corev1.NodeInternalIP {
-			return fmt.Sprintf("redfish+http://%s:%d/redfish/v1/Systems/%s", addr.Address, 8000, vmName), nil
+			return fmt.Sprintf("redfish+http://%s:%d/redfish/v1/Systems/%s", addr.Address, 8000, vmName), labels, nil
 		}
 	}
-	return "", fmt.Errorf("Node %s doesn't have internal ip address defined", node.Name)
+	return "", labels, fmt.Errorf("Node %s doesn't have internal ip address defined", node.Name)
 }
 
 // reconcileBMHCredentials returns secret name with credentials and error

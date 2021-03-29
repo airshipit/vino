@@ -39,10 +39,18 @@ var _ = Describe("Test BMH reconciliation", func() {
 		It("creates 6 BMH hosts", func() {
 			os.Setenv("RUNTIME_NAMESPACE", "vino-system")
 			defer os.Unsetenv("RUNTIME_NAMESPACE")
+			rackLabel := "airshipit.org/rack"
+			serverLabel := "airshipit.org/server"
 			vino := testVINO()
+			providedFlavorLabel := "provided-label"
+			providedFlavorValue := "provided-value"
+			vino.Spec.NodeLabelKeysToCopy = []string{rackLabel, serverLabel}
 			vino.Spec.Nodes = []vinov1.NodeSet{
 				{
-					Name:  "worker",
+					Name: "worker",
+					BMHLabels: map[string]string{
+						providedFlavorLabel: providedFlavorValue,
+					},
 					Count: 3,
 					NetworkDataTemplate: vinov1.NamespacedName{
 						Name:      "default-template",
@@ -94,9 +102,16 @@ var _ = Describe("Test BMH reconciliation", func() {
 				},
 			}
 
+			rack1 := "r1"
+			server1 := "s1"
+			node1Labels := map[string]string{
+				rackLabel:   rack1,
+				serverLabel: server1,
+			}
 			node1 := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "node01",
+					Name:   "node01",
+					Labels: node1Labels,
 				},
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{
@@ -148,6 +163,9 @@ var _ = Describe("Test BMH reconciliation", func() {
 
 			Expect(reconciler.Get(ctx, client.ObjectKeyFromObject(bmh), bmh)).Should(Succeed())
 			Expect(bmh.Spec.BMC.Address).To(Equal("redfish+http://10.0.0.2:8000/redfish/v1/Systems/worker-1"))
+			Expect(bmh.Labels).To(HaveKeyWithValue(rackLabel, rack1))
+			Expect(bmh.Labels).To(HaveKeyWithValue(serverLabel, server1))
+			Expect(bmh.Labels).To(HaveKeyWithValue(providedFlavorLabel, providedFlavorValue))
 			Expect(reconciler.Get(ctx, client.ObjectKeyFromObject(networkSecret), networkSecret)).Should(Succeed())
 			Expect(networkSecret.StringData["networkData"]).To(Equal("REPLACEME"))
 		})

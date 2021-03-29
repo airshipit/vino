@@ -52,6 +52,9 @@ type VinoSpec struct {
 	// BMCCredentials contain credentials that will be used to create BMH nodes
 	// sushy tools will use these credentials as well, to set up authentication
 	BMCCredentials BMCCredentials `json:"bmcCredentials"`
+	// NodeLabelKeysToCopy vino controller will get these labels from k8s nodes
+	// and place them on BMHs that correspond to this node
+	NodeLabelKeysToCopy []string `json:"nodeLabelKeysToCopy,omitempty"`
 }
 
 // BMCCredentials contain credentials that will be used to create BMH nodes
@@ -102,19 +105,16 @@ type VMRoutes struct {
 //NodeSet node definitions
 type NodeSet struct {
 	//Parameter for Node master or worker-standard
-	Name                      string              `json:"name,omitempty"`
-	Count                     int                 `json:"count,omitempty"`
-	NodeLabel                 VMNodeFlavor        `json:"labels,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Count int    `json:"count,omitempty"`
+	// BMHLabels labels will be copied directly to BMHs that will be created
+	// These labels will override keys from k8s node, that are specified in vino.NodeLabelKeysToCopy
+	BMHLabels                 map[string]string   `json:"bmhLabels,omitempty"`
 	LibvirtTemplateDefinition NamespacedName      `json:"libvirtTemplate,omitempty"`
 	NetworkInterfaces         []NetworkInterface  `json:"networkInterfaces,omitempty"`
 	DiskDrives                *DiskDrivesTemplate `json:"diskDrives,omitempty"`
 	// NetworkDataTemplate must have a template key
 	NetworkDataTemplate NamespacedName `json:"networkDataTemplate,omitempty"`
-}
-
-// VMNodeFlavor labels for node to be annotated
-type VMNodeFlavor struct {
-	VMFlavor map[string]string `json:"vmFlavor,omitempty"`
 }
 
 // NamespacedName to be used to spawn VMs

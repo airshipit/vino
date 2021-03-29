@@ -4,6 +4,9 @@ metadata:
   name: vino-test-cr
   #  labels: ...
 spec:
+  nodeLabelKeysToCopy:
+    - "airshipit.org/server"
+    - "airshipit.org/rack"
   nodeSelector:
     matchLabels:
       beta.kubernetes.io/os: linux
@@ -37,6 +40,8 @@ spec:
   nodes:
     - name: "worker"
       count: 3
+      bmhLabels:
+        airshipit.org/k8s-role: worker
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
