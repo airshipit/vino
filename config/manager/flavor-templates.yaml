@@ -1,0 +1,229 @@
+flavorTemplates:
+  master:
+    domainTemplate: |
+      {% set nodename = 'master-' + item|string %}
+      <domain type="kvm">
+        <name>{{ nodename }}</name>
+        <uuid>{{ nodename | hash('md5') }}</uuid>
+        <metadata>
+          <vino:flavor>master</vino:flavor>
+          <vino:creationTime>{{ ansible_date_time.date }}</vino:creationTime>
+        </metadata>
+        <memory unit="GiB">{{ flavors.master.memory }}</memory>
+        {% if flavors.worker.hugepages is defined and flavors.worker.hugepages == true %}
+        <memoryBacking>
+          <hugepages>
+            <page size='1' unit='GiB' />
+          </hugepages>
+        </memoryBacking>
+        {% endif %}
+        <vcpu placement="static">{{ flavors.master.vcpus }}</vcpu>
+        {% if node_core_map[nodename] is defined %}
+        # function to produce list of cpus, in same numa (controled by bool), state will need to be tracked via file on hypervisor host. gotpl psudo:
+        <cputune>
+          <shares>8192</shares>
+          {% for core in node_core_map[nodename] %}
+          <vcpupin vcpu="{{ loop.index0 }}" cpuset="{{ core }}"/>
+          {% endfor %}
+          <emulatorpin cpuset="{{ node_core_map[nodename]|join(',') }}"/>
+        </cputune>
+        {% endif %}
+        <resource>
+          <partition>/machine</partition>
+        </resource>
+        <os>
+          <type arch="x86_64" machine="pc">hvm</type>
+          <boot dev="hd"/>
+        </os>
+        <features>
+          <acpi/>
+          <apic/>
+        </features>
+        <cpu mode="host-passthrough" />
+        <clock offset="utc">
+          <timer name="pit" tickpolicy="delay"/>
+          <timer name="rtc" tickpolicy="catchup"/>
+          <timer name="hpet" present="no"/>
+        </clock>
+        <on_poweroff>destroy</on_poweroff>
+        <on_reboot>restart</on_reboot>
+        <on_crash>destroy</on_crash>
+        <devices>
+          <emulator>/usr/bin/qemu-system-x86_64</emulator>
+
+          # for each disk requested
+          <disk type='volume' device='disk'>
+            <driver name="qemu" type="qcow2" cache="none" discard="unmap"/>
+            <source pool='vino-default' volume='{{ nodename }}'/>
+            <target dev='vde' bus='virtio'/>
+          </disk>
+
+          <controller type="usb" index="0" model="piix3-uhci">
+            <alias name="usb"/>
+            <address type="pci" domain="0x0000" bus="0x00" slot="0x01" function="0x2"/>
+          </controller>
+          <controller type="pci" index="0" model="pci-root">
+            <alias name="pci.0"/>
+          </controller>
+          <controller type="ide" index="0">
+            <alias name="ide"/>
+            <address type="pci" domain="0x0000" bus="0x00" slot="0x01" function="0x1"/>
+          </controller>
+
+          # for each interface defined in vino, e.g.
+          <interface type='bridge'>
+            <mac address='52:54:00:83:e9:f9'/>
+            <source bridge='management'/>
+            <model type='virtio'/>
+            <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+          </interface>
+
+          <serial type="pty">
+            <source path="/dev/pts/3"/>
+            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
+            <target type="isa-serial" port="0">
+              <model name="isa-serial"/>
+            </target>
+            <alias name="serial0"/>
+          </serial>
+          <console type="pty" tty="/dev/pts/3">
+            <source path="/dev/pts/3"/>
+            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
+            <target type="serial" port="0"/>
+            <alias name="serial0"/>
+          </console>
+          <memballoon model="virtio">
+            <stats period="10"/>
+            <alias name="balloon0"/>
+            <address type="pci" domain="0x0000" bus="0x00" slot="0x06" function="0x0"/>
+          </memballoon>
+        </devices>
+        <seclabel type="dynamic" model="dac" relabel="yes">
+          <label>+42424:+104</label>
+          <imagelabel>+42424:+104</imagelabel>
+        </seclabel>
+      </domain>
+    volumeTemplate: |
+      {% set nodename = 'master-' + item|string %}
+      <volume>
+        <name>{{ nodename }}</name>
+        <allocation>0</allocation>
+        <capacity unit='G'>{{ flavors.master.rootSize }}</capacity>
+        <target>
+          <format type='qcow2'/>
+        </target>
+      </volume>
+  worker:
+    domainTemplate: |
+      {% set nodename = 'worker-' + item|string %}
+      <domain type="kvm">
+        <name>{{ nodename }}</name>
+        <uuid>{{ nodename | hash('md5') }}</uuid>
+        <metadata>
+          <vino:flavor>worker</vino:flavor>
+          <vino:creationTime>{{ ansible_date_time.date }}</vino:creationTime>
+        </metadata>
+        <memory unit="GiB">{{ flavors.worker.memory }}</memory>
+        {% if flavors.worker.hugepages is defined and flavors.worker.hugepages == true %}
+        <memoryBacking>
+          <hugepages>
+            <page size='1' unit='GiB' />
+          </hugepages>
+        </memoryBacking>
+        {% endif %}
+        <vcpu placement="static">{{ flavors.worker.vcpus }}</vcpu>
+        {% if node_core_map[nodename] is defined %}
+        # function to produce list of cpus, in same numa (controled by bool), state will need to be tracked via file on hypervisor host. gotpl psudo:
+        <cputune>
+          <shares>8192</shares>
+          {% for core in node_core_map[nodename] %}
+          <vcpupin vcpu="{{ loop.index0 }}" cpuset="{{ core }}"/>
+          {% endfor %}
+          <emulatorpin cpuset="{{ node_core_map[nodename]|join(',') }}"/>
+        </cputune>
+        {% endif %}
+        <resource>
+          <partition>/machine</partition>
+        </resource>
+        <os>
+          <type arch="x86_64" machine="pc-i440fx-xenial">hvm</type>
+          <boot dev="hd"/>
+        </os>
+        <features>
+          <acpi/>
+          <apic/>
+        </features>
+        <cpu mode="host-passthrough" />
+        <clock offset="utc">
+          <timer name="pit" tickpolicy="delay"/>
+          <timer name="rtc" tickpolicy="catchup"/>
+          <timer name="hpet" present="no"/>
+        </clock>
+        <on_poweroff>destroy</on_poweroff>
+        <on_reboot>restart</on_reboot>
+        <on_crash>destroy</on_crash>
+        <devices>
+          <emulator>/usr/bin/qemu-system-x86_64</emulator>
+
+          # for each disk requested
+          <disk type='volume' device='disk'>
+            <driver name="qemu" type="qcow2" cache="none" discard="unmap"/>
+            <source pool='vino-default' volume='{{ nodename }}'/>
+            <target dev='vde' bus='virtio'/>
+          </disk>
+
+          <controller type="usb" index="0" model="piix3-uhci">
+            <alias name="usb"/>
+            <address type="pci" domain="0x0000" bus="0x00" slot="0x01" function="0x2"/>
+          </controller>
+          <controller type="pci" index="0" model="pci-root">
+            <alias name="pci.0"/>
+          </controller>
+          <controller type="ide" index="0">
+            <alias name="ide"/>
+            <address type="pci" domain="0x0000" bus="0x00" slot="0x01" function="0x1"/>
+          </controller>
+
+          # for each interface defined in vino, e.g.
+          <interface type='bridge'>
+            <mac address='52:54:00:83:e9:f9'/>
+            <source bridge='management'/>
+            <model type='virtio'/>
+            <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+          </interface>
+
+          <serial type="pty">
+            <source path="/dev/pts/3"/>
+            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
+            <target type="isa-serial" port="0">
+              <model name="isa-serial"/>
+            </target>
+            <alias name="serial0"/>
+          </serial>
+          <console type="pty" tty="/dev/pts/3">
+            <source path="/dev/pts/3"/>
+            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
+            <target type="serial" port="0"/>
+            <alias name="serial0"/>
+          </console>
+          <memballoon model="virtio">
+            <stats period="10"/>
+            <alias name="balloon0"/>
+            <address type="pci" domain="0x0000" bus="0x00" slot="0x06" function="0x0"/>
+          </memballoon>
+        </devices>
+        <seclabel type="dynamic" model="dac" relabel="yes">
+          <label>+42424:+104</label>
+          <imagelabel>+42424:+104</imagelabel>
+        </seclabel>
+      </domain>
+    volumeTemplate: |
+      {% set nodename = 'worker-' + item|string %}
+      <volume>
+        <name>{{ nodename }}</name>
+        <allocation>0</allocation>
+        <capacity unit='G'>{{ flavors.worker.rootSize }}</capacity>
+        <target>
+          <format type='qcow2'/>
+        </target>
+      </volume>

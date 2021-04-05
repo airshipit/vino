@@ -150,23 +150,25 @@ spec:
                   count:
                     type: integer
                   diskDrives:
-                    description: DiskDrivesTemplate defines disks on the VM
-                    properties:
-                      name:
-                        type: string
-                      options:
-                        description: DiskOptions disk options
-                        properties:
-                          sizeGb:
-                            type: integer
-                          sparse:
-                            type: boolean
-                        type: object
-                      path:
-                        type: string
-                      type:
-                        type: string
-                    type: object
+                    items:
+                      description: DiskDrivesTemplate defines disks on the VM
+                      properties:
+                        name:
+                          type: string
+                        options:
+                          description: DiskOptions disk options
+                          properties:
+                            sizeGb:
+                              type: integer
+                            sparse:
+                              type: boolean
+                          type: object
+                        path:
+                          type: string
+                        type:
+                          type: string
+                      type: object
+                    type: array
                   libvirtTemplate:
                     description: NamespacedName to be used to spawn VMs
                     properties:
@@ -176,7 +178,7 @@ spec:
                         type: string
                     type: object
                   name:
-                    description: Parameter for Node master or worker-standard
+                    description: Parameter for Node master or worker
                     type: string
                   networkDataTemplate:
                     description: NetworkDataTemplate must have a template key

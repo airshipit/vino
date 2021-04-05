@@ -1,0 +1,11 @@
+flavors:
+  master:
+    vcpus: 4
+    memory: 4
+    hugepages: false
+    rootSize: 30
+  worker:
+    vcpus: 2
+    memory: 2
+    hugepages: false
+    rootSize: 10

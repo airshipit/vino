@@ -19,7 +19,7 @@ spec:
         - name: libvirt
           command:
             - /tmp/libvirt.sh
-          image: quay.io/airshipit/libvirt
+          image: quay.io/airshipit/libvirt:latest-ubuntu_bionic
           securityContext:
             privileged: true
             runAsUser: 0
@@ -59,6 +59,48 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+        - name: vino-builder
+          command:
+              - bash
+              - -cex
+              - |
+                /entrypoint.sh || true
+                tail -f /dev/null
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            readOnlyRootFilesystem: false
+          ports:
+            - containerPort: 8001
+              hostPort: 8001
+          image: quay.io/airshipit/vino-builder:latest-ubuntu_bionic
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: flavors
+              mountPath: /var/lib/vino-builder/flavors
+            - name: flavor-templates
+              mountPath: /var/lib/vino-builder/flavor-templates
+            - name: network-templates
+              mountPath: /var/lib/vino-builder/network-templates
+            - name: storage-templates
+              mountPath: /var/lib/vino-builder/storage-templates
+            - name: pod-tmp
+              mountPath: /tmp
+            - mountPath: /lib/modules
+              name: libmodules
+              readOnly: true
+            - name: var-lib-libvirt
+              mountPath: /var/lib/libvirt
+            - name: var-run-libvirt
+              mountPath: /var/run/libvirt
+            - name: run
+              mountPath: /run
+            - name: dev
+              mountPath: /dev
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+            - name: logs
+              mountPath: /var/log/libvirt
       volumes:
         - name: libmodules
           hostPath:
@@ -84,3 +126,21 @@ spec:
         - name: var-run-libvirt
           hostPath:
             path: /var/run/libvirt
+        - name: flavors
+          configMap:
+            name: vino-flavors
+            defaultMode: 0555
+        - name: flavor-templates
+          configMap:
+            name: vino-flavor-templates
+            defaultMode: 0555
+        - name: network-templates
+          configMap:
+            name: vino-network-templates
+            defaultMode: 0555
+        - name: storage-templates
+          configMap:
+            name: vino-storage-templates
+            defaultMode: 0555
+        - name: pod-tmp
+          emptyDir: {}

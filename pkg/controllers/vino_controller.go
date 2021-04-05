@@ -320,7 +320,7 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino)
 	// controller should watch for changes in daemonset to reconcile if it breaks, and change status
 	// of the vino object
 	// controlleruti.SetControllerReference(vino, ds, r.scheme)
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*180)
 	defer cancel()
 
 	return r.waitDaemonSet(ctx, ds)
@@ -440,7 +440,7 @@ func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet
 				}
 				logger.Info("DaemonSet is not in ready status, rechecking in 2 seconds")
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(10 * time.Second)
 		}
 	}
 }
