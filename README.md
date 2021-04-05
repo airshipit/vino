@@ -70,6 +70,64 @@ USE_PROXY=true
 
 10.96.0.0/12 is the Kubernetes service CIDR.
 
+#### Configure hugepages support
+
+The default vino-builder VM flavors use 1G hugepages. To ensure hugepages support is configured
+correctly at the host level, do the following:
+
+For Ubuntu 18.04 and earlier, install the 'hugepages' package:
+
+```
+# sudo apt install hugepages
+```
+
+For later ubuntu versions, install the 'libhugetlbfs-bin' package:
+
+```
+# sudo apt install libhugetlbfs-bin
+```
+
+Then run:
+
+```
+# hugeadm --explain
+```
+
+This will display a block like the following describing the current hugepages configuration:
+
+```
+Total System Memory: 96676 MB
+
+Mount Point          Options
+/dev/hugepages       rw,relatime,pagesize=1024M
+
+Huge page pools:
+      Size Minimum Current Maximum Default
+1073741824      64      64      64       *
+```
+
+In the example above, pagesize=1024M indicates a default 1GB page size for the /dev/hugepages
+mount, and 64 pages are preallocated for 64GB available memory. If the default pagesize is other
+than 1024M or the number of preallocated pages is insufficient for the subcluster VMs to be
+created, add the parameters default_hugepagesz, hugepagesz and hugepages to the end of
+GRUB_CMDLINE_LINUX_DEFAULT in your host's grub config file. For example,
+
+```
+# Set the default commandline
+GRUB_CMDLINE_LINUX_DEFAULT="console=tty1 console=ttyS0 default_hugepagesz=1G hugepagesz=1G hugepages=64"
+```
+
+(In a typical Ubuntu installation, the grub configuration can usually be found at /etc/default/grub or
+somewhere under /etc/grub.d. If the host is a VM built from a cloud image, the grub config may be found
+at /etc/default/grub.d/50-cloudimg-settings.cfg.)
+
+After making changes, run the following to make them take effect:
+
+```
+sudo update-grub
+sudo reboot now
+```
+
 ### Deploy ViNO
 
 Airship projects often have to deploy Kubernetes, with common requirements such as supporting
