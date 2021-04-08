@@ -16,6 +16,7 @@ package ipam
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"regexp"
 	"strings"
@@ -153,8 +154,6 @@ func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1
 		if err != nil {
 			return "", "", err
 		}
-		i.Log.Info("Allocating IP", "ip", ip, "subnet", subnet, "subnetRange", subnetRange)
-		ippool.AllocatedIPs = append(ippool.AllocatedIPs, vinov1.AllocatedIP{IP: ip, AllocatedTo: allocatedTo})
 
 		// Find a MAC
 		mac = ippool.NextMAC
@@ -164,6 +163,10 @@ func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1
 		}
 		ippool.NextMAC = intToMACString(macInt + 1)
 
+		i.Log.Info("Allocating IP", "ip", ip, "mac", mac, "subnet", subnet, "subnetRange", subnetRange)
+		ippool.AllocatedIPs = append(ippool.AllocatedIPs,
+			vinov1.AllocatedIP{IP: ip, MAC: mac, AllocatedTo: allocatedTo})
+
 		// Save the updated IPPool
 		err = i.applyIPPool(ctx, *ippool)
 		if err != nil {
@@ -171,6 +174,12 @@ func (i *Ipam) AllocateIP(ctx context.Context, subnet string, subnetRange vinov1
 		}
 	}
 
+	// This is just a sanity check - should never happen
+	if ip == "" || mac == "" {
+		return "", "", ErrNotSupported{fmt.Sprintf(
+			"IP: '%s' or MAC: '%s' unable to be generated. This is a bug!", ip, mac,
+		)}
+	}
 	return ip, mac, nil
 }
 
