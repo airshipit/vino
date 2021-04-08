@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig"
 	"github.com/go-logr/logr"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerror "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	vinov1 "vino/pkg/api/v1"
 	"vino/pkg/ipam"
@@ -48,8 +50,8 @@ type networkTemplateValues struct {
 }
 
 type generatedValues struct {
-	IPAddresses  map[string]string // a map of network names to IP addresses
-	MACAddresses map[string]string // a map of network interface (link) names to MACs
+	IPAddresses  map[string]string
+	MACAddresses map[string]string
 }
 
 func (r *VinoReconciler) ensureBMHs(ctx context.Context, vino *vinov1.Vino) error {
@@ -130,12 +132,13 @@ func (r *VinoReconciler) createIpamNetworks(ctx context.Context, vino *vinov1.Vi
 		if err != nil {
 			return err
 		}
-		if network.MACPrefix == "" {
-			logger.Info("No MACPrefix provided; using default MACPrefix %s for network %s",
-				DefaultMACPrefix, network.Name)
-			network.MACPrefix = DefaultMACPrefix
+		macPrefix := network.MACPrefix
+		if macPrefix == "" {
+			logger.Info("No MACPrefix provided; using default MACPrefix for network",
+				"default prefix", DefaultMACPrefix, "network name", network.Name)
+			macPrefix = DefaultMACPrefix
 		}
-		err = r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange, network.MACPrefix)
+		err = r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange, macPrefix)
 		if err != nil {
 			return err
 		}
@@ -145,6 +148,19 @@ func (r *VinoReconciler) createIpamNetworks(ctx context.Context, vino *vinov1.Vi
 
 func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino, pod corev1.Pod) error {
 	logger := logr.FromContext(ctx)
+
+	nodeNetworkValues := map[string]generatedValues{}
+
+	k8sNode, err := r.getNode(ctx, pod)
+	if err != nil {
+		return err
+	}
+
+	ip, err := r.getBridgeIP(ctx, k8sNode)
+	if err != nil {
+		return err
+	}
+
 	for _, node := range vino.Spec.Nodes {
 		logger.Info("Creating BMHs for vino node", "node name", node.Name, "count", node.Count)
 		prefix := r.getBMHNodePrefix(vino, pod)
@@ -152,58 +168,25 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 			roleSuffix := fmt.Sprintf("%s-%d", node.Name, i)
 			bmhName := fmt.Sprintf("%s-%s", prefix, roleSuffix)
 
-			creds, err := r.reconcileBMHCredentials(ctx, vino)
-			if err != nil {
-				return err
+			creds, nodeErr := r.reconcileBMHCredentials(ctx, vino)
+			if nodeErr != nil {
+				return nodeErr
 			}
 
-			// Allocate an IP for each of this BMH's network interfaces
-			ipAddresses := map[string]string{}
-			macAddresses := map[string]string{}
-			for _, iface := range node.NetworkInterfaces {
-				networkName := iface.NetworkName
-				subnet := ""
-				subnetRange := vinov1.Range{}
-				for _, network := range vino.Spec.Networks {
-					if network.Name == networkName {
-						subnet = network.SubNet
-						subnetRange, err = ipam.NewRange(network.AllocationStart,
-							network.AllocationStop)
-						if err != nil {
-							return err
-						}
-						break
-					}
-				}
-				if subnet == "" {
-					return fmt.Errorf("Interface %s doesn't have a matching network defined", networkName)
-				}
-				ipAllocatedTo := fmt.Sprintf("%s/%s", bmhName, iface.NetworkName)
-				ipAddress, macAddress, er := r.Ipam.AllocateIP(ctx, subnet, subnetRange, ipAllocatedTo)
-				if er != nil {
-					return er
-				}
-				ipAddresses[networkName] = ipAddress
-				macAddresses[iface.Name] = macAddress
+			values, nodeErr := r.networkValues(ctx, bmhName, ip, node, vino)
+			if nodeErr != nil {
+				return nodeErr
+			}
+			nodeNetworkValues[roleSuffix] = values.Generated
+
+			netData, netDataNs, nodeErr := r.reconcileBMHNetworkData(ctx, node, vino, values)
+			if nodeErr != nil {
+				return nodeErr
 			}
 
-			values := networkTemplateValues{
-				Node:     node,
-				BMHName:  bmhName,
-				Networks: vino.Spec.Networks,
-				Generated: generatedValues{
-					IPAddresses:  ipAddresses,
-					MACAddresses: macAddresses,
-				},
-			}
-			netData, netDataNs, err := r.reconcileBMHNetworkData(ctx, node, vino, values)
-			if err != nil {
-				return err
-			}
-
-			bmcAddr, labels, err := r.getBMCAddressAndLabels(ctx, pod, vino.Spec.NodeLabelKeysToCopy, roleSuffix)
-			if err != nil {
-				return err
+			bmcAddr, labels, nodeErr := r.getBMCAddressAndLabels(ctx, k8sNode, vino.Spec.NodeLabelKeysToCopy, roleSuffix)
+			if nodeErr != nil {
+				return nodeErr
 			}
 
 			for label, value := range node.BMHLabels {
@@ -232,13 +215,145 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 			}
 			objKey := client.ObjectKeyFromObject(bmh)
 			logger.Info("Creating BMH", "name", objKey)
-			err = applyRuntimeObject(ctx, objKey, bmh, r.Client)
-			if err != nil {
-				return err
+			nodeErr = applyRuntimeObject(ctx, objKey, bmh, r.Client)
+			if nodeErr != nil {
+				return nodeErr
 			}
 		}
 	}
+	logger.Info("annotating node", "node", k8sNode.Name)
+	if err = r.annotateNode(ctx, ip, k8sNode, nodeNetworkValues); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (r *VinoReconciler) networkValues(
+	ctx context.Context,
+	bmhName string,
+	bridgeIP string,
+	node vinov1.NodeSet,
+	vino *vinov1.Vino) (networkTemplateValues, error) {
+	// Allocate an IP for each of this BMH's network interfaces
+	ipAddresses := map[string]string{}
+	macAddresses := map[string]string{}
+	for _, iface := range node.NetworkInterfaces {
+		networkName := iface.NetworkName
+		subnet := ""
+		var err error
+		subnetRange := vinov1.Range{}
+		for netIndex, network := range vino.Spec.Networks {
+			for routeIndex, route := range network.Routes {
+				if route.Gateway == "$vinobridge" {
+					vino.Spec.Networks[netIndex].Routes[routeIndex].Gateway = bridgeIP
+				}
+			}
+			if network.Name == networkName {
+				subnet = network.SubNet
+				subnetRange, err = ipam.NewRange(network.AllocationStart,
+					network.AllocationStop)
+				if err != nil {
+					return networkTemplateValues{}, err
+				}
+				break
+			}
+		}
+		if subnet == "" {
+			return networkTemplateValues{}, fmt.Errorf("Interface %s doesn't have a matching network defined", networkName)
+		}
+		ipAllocatedTo := fmt.Sprintf("%s/%s", bmhName, iface.NetworkName)
+		ipAddress, macAddress, err := r.Ipam.AllocateIP(ctx, subnet, subnetRange, ipAllocatedTo)
+		if err != nil {
+			return networkTemplateValues{}, err
+		}
+		ipAddresses[networkName] = ipAddress
+		macAddresses[iface.Name] = macAddress
+		logr.FromContext(ctx).Info("Got MAC and IP for the network and node",
+			"MAC", macAddress, "IP", ipAddress, "bmh name", bmhName)
+	}
+	return networkTemplateValues{
+		Node:     node,
+		BMHName:  bmhName,
+		Networks: vino.Spec.Networks,
+		Generated: generatedValues{
+			IPAddresses:  ipAddresses,
+			MACAddresses: macAddresses,
+		},
+	}, nil
+}
+
+func (r *VinoReconciler) annotateNode(ctx context.Context,
+	gwIP string,
+	k8sNode *corev1.Node,
+	values map[string]generatedValues) error {
+	logr.FromContext(ctx).Info("Getting GW bridge IP from node", "node", k8sNode.Name)
+	builderValues := vinov1.Builder{
+		Domains:    make(map[string]vinov1.BuilderDomain),
+		GWIPBridge: gwIP,
+	}
+	for domainName, domain := range values {
+		builderDomain := vinov1.BuilderDomain{
+			Interfaces: make(map[string]vinov1.BuilderNetworkInterface),
+		}
+		for ifName, ifMAC := range domain.MACAddresses {
+			builderDomain.Interfaces[ifName] = vinov1.BuilderNetworkInterface{
+				MACAddress: ifMAC,
+			}
+		}
+		builderValues.Domains[domainName] = builderDomain
+	}
+
+	b, err := yaml.Marshal(builderValues)
+	if err != nil {
+		return err
+	}
+
+	annotations := k8sNode.GetAnnotations()
+	if k8sNode.GetAnnotations() == nil {
+		annotations = make(map[string]string)
+	}
+
+	annotations[vinov1.VinoNodeNetworkValuesAnnotation] = string(b)
+	k8sNode.SetAnnotations(annotations)
+
+	return r.Update(ctx, k8sNode)
+}
+
+func (r *VinoReconciler) getBridgeIP(ctx context.Context, k8sNode *corev1.Node) (string, error) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	for {
+		select {
+		case <-ctxTimeout.Done():
+			return "", ctx.Err()
+		default:
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: k8sNode.Name,
+				},
+			}
+			if err := r.Get(ctx, client.ObjectKeyFromObject(node), node); err != nil {
+				return "", err
+			}
+
+			ip, exist := k8sNode.Labels[vinov1.VinoDefaultGatewayBridgeLabel]
+			if exist {
+				return ip, nil
+			}
+			time.Sleep(10 * time.Second)
+		}
+	}
+}
+
+func (r *VinoReconciler) getNode(ctx context.Context, pod corev1.Pod) (*corev1.Node, error) {
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: pod.Spec.NodeName,
+		},
+	}
+	err := r.Get(ctx, client.ObjectKeyFromObject(node), node)
+	return node, err
 }
 
 func (r *VinoReconciler) getBMHNodePrefix(vino *vinov1.Vino, pod corev1.Pod) string {
@@ -248,20 +363,10 @@ func (r *VinoReconciler) getBMHNodePrefix(vino *vinov1.Vino, pod corev1.Pod) str
 
 func (r *VinoReconciler) getBMCAddressAndLabels(
 	ctx context.Context,
-	pod corev1.Pod,
+	node *corev1.Node,
 	labelKeys []string,
 	vmName string) (string, map[string]string, error) {
-	logger := logr.FromContext(ctx).WithValues("k8s node", pod.Spec.NodeName)
-
-	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: pod.Spec.NodeName,
-		},
-	}
-	err := r.Get(ctx, client.ObjectKeyFromObject(node), node)
-	if err != nil {
-		return "", nil, err
-	}
+	logger := logr.FromContext(ctx).WithValues("k8s node", node.Name)
 
 	labels := map[string]string{}
 
@@ -336,6 +441,8 @@ func (r *VinoReconciler) reconcileBMHNetworkData(
 		return "", "", err
 	}
 
+	logger.Info("Genereated MAC Addresses values are", "GENERATED VALUES", values.Generated.MACAddresses)
+
 	buf := bytes.NewBuffer([]byte{})
 	err = tpl.Execute(buf, values)
 	if err != nil {
@@ -343,7 +450,6 @@ func (r *VinoReconciler) reconcileBMHNetworkData(
 	}
 
 	name := fmt.Sprintf("%s-network-data", values.BMHName)
-
 	ns := getRuntimeNamespace()
 	netSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

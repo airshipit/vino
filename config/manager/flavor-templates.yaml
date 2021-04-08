@@ -2,6 +2,8 @@ flavorTemplates:
   master:
     domainTemplate: |
       {% set nodename = 'master-' + item|string %}
+      {% if domains[nodename] is defined %}
+      {% set domain = domains[nodename] %}
       <domain type="kvm">
         <name>{{ nodename }}</name>
         <uuid>{{ nodename | hash('md5') }}</uuid>
@@ -71,12 +73,14 @@ flavorTemplates:
           </controller>
 
           # for each interface defined in vino, e.g.
+          {% for if_name, if_values in domain.interfaces.items() %}
           <interface type='bridge'>
-            <mac address='52:54:00:83:e9:f9'/>
-            <source bridge='management'/>
+            <mac address='{{ if_values.macAddress }}'/>
+            <source bridge='{{ if_name }}'/>
             <model type='virtio'/>
-            <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+            <address type='pci' domain='0x0000' bus='0x00' slot='0x0{{ loop.index0 }}' function='0x0'/>
           </interface>
+          {% endfor %}
 
           <serial type="pty">
             <source path="/dev/pts/3"/>
@@ -103,6 +107,7 @@ flavorTemplates:
           <imagelabel>+42424:+104</imagelabel>
         </seclabel>
       </domain>
+      {% endif %}
     volumeTemplate: |
       {% set nodename = 'master-' + item|string %}
       <volume>
@@ -116,6 +121,8 @@ flavorTemplates:
   worker:
     domainTemplate: |
       {% set nodename = 'worker-' + item|string %}
+      {% if domains[nodename] is defined %}
+      {% set domain = domains[nodename] %}
       <domain type="kvm">
         <name>{{ nodename }}</name>
         <uuid>{{ nodename | hash('md5') }}</uuid>
@@ -184,13 +191,14 @@ flavorTemplates:
             <address type="pci" domain="0x0000" bus="0x00" slot="0x01" function="0x1"/>
           </controller>
 
-          # for each interface defined in vino, e.g.
+          {% for if_name, if_values in domain.interfaces.items() %}
           <interface type='bridge'>
-            <mac address='52:54:00:83:e9:f9'/>
-            <source bridge='management'/>
+            <mac address='{{ if_values.macAddress }}'/>
+            <source bridge='{{ if_name }}'/>
             <model type='virtio'/>
-            <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+            <address type='pci' domain='0x0000' bus='0x00' slot='0x0{{ loop.index0 }}' function='0x0'/>
           </interface>
+          {% endfor %}
 
           <serial type="pty">
             <source path="/dev/pts/3"/>
@@ -217,6 +225,7 @@ flavorTemplates:
           <imagelabel>+42424:+104</imagelabel>
         </seclabel>
       </domain>
+      {% endif %}
     volumeTemplate: |
       {% set nodename = 'worker-' + item|string %}
       <volume>

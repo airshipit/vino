@@ -110,8 +110,9 @@ var _ = Describe("Test BMH reconciliation", func() {
 			}
 			node1 := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "node01",
-					Labels: node1Labels,
+					Name:        "node01",
+					Labels:      node1Labels,
+					Annotations: make(map[string]string),
 				},
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{
@@ -124,7 +125,8 @@ var _ = Describe("Test BMH reconciliation", func() {
 			}
 			node2 := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "node02",
+					Name:        "node02",
+					Annotations: make(map[string]string),
 				},
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{

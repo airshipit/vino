@@ -28,25 +28,17 @@
     collect_namespaced_objects:
       - baremetalhosts
       - configmaps
-      - cronjobs
       - daemonsets
       - deployments
-      - endpoints
-      - ingresses
-      - jobs
-      - networkpolicies
       - pods
-      - podsecuritypolicies
-      - persistentvolumeclaims
       - replicasets
       - rolebindings
       - roles
       - secrets
       - serviceaccounts
-      - services
-      - statefulsets
       - vino
-
+      - nodes
+      - ippool
 
 - name: "Get context list"
   include_tasks: get-contexts.yaml

@@ -102,6 +102,124 @@ string
 </table>
 </div>
 </div>
+<h3 id="airship.airshipit.org/v1.Builder">Builder
+</h3>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>gwIPBridge</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>networks</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.BuilderNetwork">
+map[string]./pkg/api/v1.BuilderNetwork
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>domains</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.BuilderDomain">
+map[string]./pkg/api/v1.BuilderDomain
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="airship.airshipit.org/v1.BuilderDomain">BuilderDomain
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.Builder">Builder</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>interfaces</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.BuilderNetworkInterface">
+map[string]./pkg/api/v1.BuilderNetworkInterface
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="airship.airshipit.org/v1.BuilderNetwork">BuilderNetwork
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.Builder">Builder</a>)
+</p>
+<h3 id="airship.airshipit.org/v1.BuilderNetworkInterface">BuilderNetworkInterface
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.BuilderDomain">BuilderDomain</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>macAddress</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="airship.airshipit.org/v1.CPUConfiguration">CPUConfiguration
 </h3>
 <p>
@@ -796,7 +914,7 @@ string
 </em>
 </td>
 <td>
-<p>Parameter for Node master or worker</p>
+<p>Parameter for Node control-plane or worker</p>
 </td>
 </tr>
 <tr>
