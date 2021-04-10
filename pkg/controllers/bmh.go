@@ -156,7 +156,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 		return err
 	}
 
-	ip, err := r.getBridgeIP(ctx, k8sNode)
+	nodeNetworks, err := r.nodeNetworks(ctx, vino.Spec.Networks, k8sNode)
 	if err != nil {
 		return err
 	}
@@ -173,13 +173,14 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				return nodeErr
 			}
 
-			values, nodeErr := r.networkValues(ctx, bmhName, ip, node, vino)
+			domainNetValues, nodeErr := r.domainSpecificNetValues(ctx, bmhName, node, nodeNetworks)
 			if nodeErr != nil {
 				return nodeErr
 			}
-			nodeNetworkValues[roleSuffix] = values.Generated
+			// save domain specific generated values to a map
+			nodeNetworkValues[roleSuffix] = domainNetValues.Generated
 
-			netData, netDataNs, nodeErr := r.reconcileBMHNetworkData(ctx, node, vino, values)
+			netData, netDataNs, nodeErr := r.reconcileBMHNetworkData(ctx, node, vino, domainNetValues)
 			if nodeErr != nil {
 				return nodeErr
 			}
@@ -197,9 +198,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bmhName,
 					Namespace: getRuntimeNamespace(),
-					// TODO add rack and server labels, when we crearly define mechanism
-					// which labels we are copying
-					Labels: labels,
+					Labels:    labels,
 				},
 				Spec: metal3.BareMetalHostSpec{
 					NetworkData: &corev1.SecretReference{
@@ -221,19 +220,38 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 			}
 		}
 	}
+
 	logger.Info("annotating node", "node", k8sNode.Name)
-	if err = r.annotateNode(ctx, ip, k8sNode, nodeNetworkValues); err != nil {
+	if err = r.annotateNode(ctx, k8sNode, nodeNetworkValues, nodeNetworks); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *VinoReconciler) networkValues(
+// nodeNetworks returns a copy of node network with a unique per node values
+func (r *VinoReconciler) nodeNetworks(ctx context.Context,
+	globalNetworks []vinov1.Network,
+	k8sNode *corev1.Node) ([]vinov1.Network, error) {
+	bridgeIP, err := r.getBridgeIP(ctx, k8sNode)
+	if err != nil {
+		return []vinov1.Network{}, err
+	}
+
+	for netIndex, network := range globalNetworks {
+		for routeIndex, route := range network.Routes {
+			if route.Gateway == "$vinobridge" {
+				globalNetworks[netIndex].Routes[routeIndex].Gateway = bridgeIP
+			}
+		}
+	}
+	return globalNetworks, nil
+}
+
+func (r *VinoReconciler) domainSpecificNetValues(
 	ctx context.Context,
 	bmhName string,
-	bridgeIP string,
 	node vinov1.NodeSet,
-	vino *vinov1.Vino) (networkTemplateValues, error) {
+	networks []vinov1.Network) (networkTemplateValues, error) {
 	// Allocate an IP for each of this BMH's network interfaces
 	ipAddresses := map[string]string{}
 	macAddresses := map[string]string{}
@@ -242,12 +260,7 @@ func (r *VinoReconciler) networkValues(
 		subnet := ""
 		var err error
 		subnetRange := vinov1.Range{}
-		for netIndex, network := range vino.Spec.Networks {
-			for routeIndex, route := range network.Routes {
-				if route.Gateway == "$vinobridge" {
-					vino.Spec.Networks[netIndex].Routes[routeIndex].Gateway = bridgeIP
-				}
-			}
+		for _, network := range networks {
 			if network.Name == networkName {
 				subnet = network.SubNet
 				subnetRange, err = ipam.NewRange(network.AllocationStart,
@@ -274,7 +287,7 @@ func (r *VinoReconciler) networkValues(
 	return networkTemplateValues{
 		Node:     node,
 		BMHName:  bmhName,
-		Networks: vino.Spec.Networks,
+		Networks: networks,
 		Generated: generatedValues{
 			IPAddresses:  ipAddresses,
 			MACAddresses: macAddresses,
@@ -283,15 +296,15 @@ func (r *VinoReconciler) networkValues(
 }
 
 func (r *VinoReconciler) annotateNode(ctx context.Context,
-	gwIP string,
 	k8sNode *corev1.Node,
-	values map[string]generatedValues) error {
+	domainInterfaceValues map[string]generatedValues,
+	networks []vinov1.Network) error {
 	logr.FromContext(ctx).Info("Getting GW bridge IP from node", "node", k8sNode.Name)
 	builderValues := vinov1.Builder{
-		Domains:    make(map[string]vinov1.BuilderDomain),
-		GWIPBridge: gwIP,
+		Domains:  make(map[string]vinov1.BuilderDomain),
+		Networks: networks,
 	}
-	for domainName, domain := range values {
+	for domainName, domain := range domainInterfaceValues {
 		builderDomain := vinov1.BuilderDomain{
 			Interfaces: make(map[string]vinov1.BuilderNetworkInterface),
 		}
