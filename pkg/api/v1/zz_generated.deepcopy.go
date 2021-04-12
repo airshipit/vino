@@ -65,6 +65,14 @@ func (in *Builder) DeepCopyInto(out *Builder) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Nodes != nil {
+		in, out := &in.Nodes, &out.Nodes
+		*out = make([]NodeSet, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	out.CPUConfiguration = in.CPUConfiguration
 	if in.Domains != nil {
 		in, out := &in.Domains, &out.Domains
 		*out = make(map[string]BuilderDomain, len(*in))
@@ -505,11 +513,7 @@ func (in *VinoSpec) DeepCopyInto(out *VinoSpec) {
 		*out = new(NodeSelector)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.CPUConfiguration != nil {
-		in, out := &in.CPUConfiguration, &out.CPUConfiguration
-		*out = new(CPUConfiguration)
-		**out = **in
-	}
+	out.CPUConfiguration = in.CPUConfiguration
 	if in.Networks != nil {
 		in, out := &in.Networks, &out.Networks
 		*out = make([]Network, len(*in))

@@ -105,8 +105,9 @@ var _ = Describe("Test BMH reconciliation", func() {
 			rack1 := "r1"
 			server1 := "s1"
 			node1Labels := map[string]string{
-				rackLabel:   rack1,
-				serverLabel: server1,
+				rackLabel:                            rack1,
+				serverLabel:                          server1,
+				vinov1.VinoDefaultGatewayBridgeLabel: "127.0.0.1",
 			}
 			node1 := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -126,7 +127,10 @@ var _ = Describe("Test BMH reconciliation", func() {
 			node2 := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "node02",
-					Annotations: make(map[string]string),
+					Annotations: map[string]string{},
+					Labels: map[string]string{
+						vinov1.VinoDefaultGatewayBridgeLabel: "127.0.0.1",
+					},
 				},
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{

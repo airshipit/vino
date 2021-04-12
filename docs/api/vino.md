@@ -139,6 +139,31 @@ string
 </tr>
 <tr>
 <td>
+<code>nodes</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.NodeSet">
+[]NodeSet
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>configuration</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.CPUConfiguration">
+CPUConfiguration
+</a>
+</em>
+</td>
+<td>
+<p>(TODO) change json tag to cpuConfiguration when vino-builder has these chanages as well</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>domains</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.BuilderDomain">
@@ -220,6 +245,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.Builder">Builder</a>, 
 <a href="#airship.airshipit.org/v1.VinoSpec">VinoSpec</a>)
 </p>
 <p>CPUConfiguration CPU node configuration</p>
@@ -890,6 +916,7 @@ map[string]string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.Builder">Builder</a>, 
 <a href="#airship.airshipit.org/v1.VinoSpec">VinoSpec</a>)
 </p>
 <p>NodeSet node definitions</p>
