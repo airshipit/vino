@@ -1,0 +1,5 @@
+- nodeset:
+    name: ubuntu-focal-nested
+    nodes:
+      - name: primary
+        label: nested-virt-ubuntu-focal

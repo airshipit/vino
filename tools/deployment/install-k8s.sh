@@ -54,7 +54,7 @@ sudo -E minikube start \
   --interactive=false \
   --driver=none \
   --wait=apiserver,system_pods,node_ready \
-  --wait-timeout=6m0s \
+  --wait-timeout=15m0s \
   --network-plugin=cni \
   --cni=${CNI_MANIFEST_PATH} \
   --extra-config=kube-proxy.mode=ipvs \

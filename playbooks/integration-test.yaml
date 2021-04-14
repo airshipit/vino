@@ -1,4 +1,4 @@
-- hosts: ubuntu-bionic
+- hosts: primary
   tasks:
     - name: Run ensure-docker
       include_role:
