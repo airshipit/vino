@@ -33,6 +33,10 @@ const (
 	VinoFinalizer = "vino.airshipit.org"
 	// EnvVarVMInterfaceName environment variable that is used to find VM interface to use for vms
 	EnvVarVMInterfaceName = "VM_BRIDGE_INTERFACE"
+	// VinoDefaultGatewayBridgeLabel is used to identify ip address of the default gateway for the VM
+	VinoDefaultGatewayBridgeLabel = "airshipit.org/vino.nodebridgegw"
+	// VinoNodeNetworkValuesAnnotation vino controller saves ip and mac address information for the node in it
+	VinoNodeNetworkValuesAnnotation = "airshipit.org/vino.network-values"
 )
 
 // VinoSpec defines the desired state of Vino
@@ -104,7 +108,7 @@ type VMRoutes struct {
 
 //NodeSet node definitions
 type NodeSet struct {
-	//Parameter for Node master or worker
+	// Parameter for Node control-plane or worker
 	Name  string `json:"name,omitempty"`
 	Count int    `json:"count,omitempty"`
 	// BMHLabels labels will be copied directly to BMHs that will be created

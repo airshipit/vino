@@ -61,7 +61,7 @@ type VinoReconciler struct {
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=vinoes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=airship.airshipit.org,resources=ippools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list;watch
-// +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 
 func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -105,11 +105,6 @@ func (r *VinoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	err = r.reconcileDaemonSet(ctx, vino)
-	if err != nil {
-		return ctrl.Result{Requeue: true}, err
-	}
-
-	err = r.reconcileBMHs(ctx, vino)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -320,10 +315,24 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino)
 	// controller should watch for changes in daemonset to reconcile if it breaks, and change status
 	// of the vino object
 	// controlleruti.SetControllerReference(vino, ds, r.scheme)
-	ctx, cancel := context.WithTimeout(ctx, time.Second*180)
+	scheduledTimeoutCtx, cancel := context.WithTimeout(ctx, time.Second*180)
 	defer cancel()
 
-	return r.waitDaemonSet(ctx, ds)
+	logger := logr.FromContext(ctx)
+	logger.Info("Waiting for daemonset to become scheduled")
+	if err = r.waitDaemonSet(scheduledTimeoutCtx, dsScheduled, ds); err != nil {
+		return err
+	}
+
+	if err = r.reconcileBMHs(ctx, vino); err != nil {
+		return err
+	}
+
+	waitTimeoutCtx, cancel := context.WithTimeout(ctx, time.Second*180)
+	defer cancel()
+
+	logger.Info("Waiting for daemonset to become ready")
+	return r.waitDaemonSet(waitTimeoutCtx, dsReady, ds)
 }
 
 func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
@@ -414,7 +423,7 @@ func setEnv(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
 	}
 }
 
-func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet) error {
+func (r *VinoReconciler) waitDaemonSet(ctx context.Context, check dsWaitCondition, ds *appsv1.DaemonSet) error {
 	logger := logr.FromContext(ctx).WithValues(
 		"daemonset", ds.Namespace+"/"+ds.Name)
 	for {
@@ -429,12 +438,11 @@ func (r *VinoReconciler) waitDaemonSet(ctx context.Context, ds *appsv1.DaemonSet
 				Namespace: ds.Namespace,
 			}, getDS)
 			if err != nil {
-				logger.Info("received error while waiting for ds to become ready, sleeping",
+				logger.Info("received error while waiting for ds to reach desired condition, sleeping",
 					"error", err.Error())
 			} else {
 				logger.Info("checking daemonset status", "status", getDS.Status)
-				if getDS.Status.DesiredNumberScheduled == getDS.Status.NumberReady &&
-					getDS.Status.DesiredNumberScheduled != 0 {
+				if check(getDS) {
 					logger.Info("DaemonSet is in ready status")
 					return nil
 				}
@@ -527,3 +535,13 @@ func applyRuntimeObject(ctx context.Context, key client.ObjectKey, obj client.Ob
 func getRuntimeNamespace() string {
 	return os.Getenv("RUNTIME_NAMESPACE")
 }
+
+func dsScheduled(ds *appsv1.DaemonSet) bool {
+	return ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.CurrentNumberScheduled
+}
+
+func dsReady(ds *appsv1.DaemonSet) bool {
+	return ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.NumberReady
+}
+
+type dsWaitCondition func(ds *appsv1.DaemonSet) bool

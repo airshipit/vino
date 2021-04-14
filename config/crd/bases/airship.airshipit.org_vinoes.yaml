@@ -178,7 +178,7 @@ spec:
                         type: string
                     type: object
                   name:
-                    description: Parameter for Node master or worker
+                    description: Parameter for Node control-plane or worker
                     type: string
                   networkDataTemplate:
                     description: NetworkDataTemplate must have a template key

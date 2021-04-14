@@ -4,6 +4,7 @@ metadata:
   name: vino-test-cr
   labels: {}
 spec:
+  vmBridge: lo
   nodeLabelKeysToCopy:
     - "airshipit.org/server"
     - "airshipit.org/rack"
@@ -24,7 +25,7 @@ spec:
       routes:
         - network: 10.0.0.0
           netmask: 255.255.255.0
-          gateway: 192.168.2.1 # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
+          gateway: $vinobridge # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
       dns_servers: ["135.188.34.124"]
     - name: external
       subnet: 169.0.0.0/24
@@ -36,7 +37,6 @@ spec:
       allocationStart: 169.0.0.10
       allocationStop: 169.0.0.254
       macPrefix: "0A:00:00:00:00:00"
-  vmBridge: lo
   nodes:
     - name: master
       count: 1
