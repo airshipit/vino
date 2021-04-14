@@ -16,20 +16,18 @@ limitations under the License.
 
 package v1
 
+// TODO (kkalynovskyi) create an API object for this, and refactor vino-builder to read it from kubernetes.
 type Builder struct {
-	GWIPBridge string                    `json:"gwIPBridge,omitempty"`
-	Networks   map[string]BuilderNetwork `json:"networks,omitempty"`
-	Domains    map[string]BuilderDomain  `json:"domains,omitempty"`
+	GWIPBridge string                   `json:"gwIPBridge,omitempty"`
+	Networks   []Network                `json:"networks,omitempty"`
+	Domains    map[string]BuilderDomain `json:"domains,omitempty"`
 }
 
 type BuilderNetworkInterface struct {
 	MACAddress string `json:"macAddress,omitempty"`
 }
 
-type BuilderNetwork struct {
-	// Placeholder for future development
-}
-
+// BuilderDomain represents a VINO libvirt domain
 type BuilderDomain struct {
 	Interfaces map[string]BuilderNetworkInterface `json:"interfaces,omitempty"`
 }

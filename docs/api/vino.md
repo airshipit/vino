@@ -104,6 +104,7 @@ string
 </div>
 <h3 id="airship.airshipit.org/v1.Builder">Builder
 </h3>
+<p>TODO (kkalynovskyi) create an API object for this, and refactor vino-builder to read it from kubernetes.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -128,8 +129,8 @@ string
 <td>
 <code>networks</code><br>
 <em>
-<a href="#airship.airshipit.org/v1.BuilderNetwork">
-map[string]./pkg/api/v1.BuilderNetwork
+<a href="#airship.airshipit.org/v1.Network">
+[]Network
 </a>
 </em>
 </td>
@@ -158,6 +159,7 @@ map[string]./pkg/api/v1.BuilderDomain
 (<em>Appears on:</em>
 <a href="#airship.airshipit.org/v1.Builder">Builder</a>)
 </p>
+<p>BuilderDomain represents a VINO libvirt domain</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -184,12 +186,6 @@ map[string]./pkg/api/v1.BuilderNetworkInterface
 </table>
 </div>
 </div>
-<h3 id="airship.airshipit.org/v1.BuilderNetwork">BuilderNetwork
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#airship.airshipit.org/v1.Builder">Builder</a>)
-</p>
 <h3 id="airship.airshipit.org/v1.BuilderNetworkInterface">BuilderNetworkInterface
 </h3>
 <p>
@@ -679,6 +675,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.Builder">Builder</a>, 
 <a href="#airship.airshipit.org/v1.VinoSpec">VinoSpec</a>)
 </p>
 <p>Network defines libvirt networks</p>
