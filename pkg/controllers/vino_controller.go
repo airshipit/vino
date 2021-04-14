@@ -217,8 +217,10 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 	// TODO develop logic to derive all required ENV variables from VINO CR, and pass them
 	// to setENV function instead
 	if vino.Spec.VMBridge != "" {
-		setEnv(ctx, ds, vino)
+		setEnv(ctx, ds, vinov1.EnvVarVMInterfaceName, vino.Spec.VMBridge)
 	}
+	setEnv(ctx, ds, vinov1.EnvVarBasicAuthUsername, vino.Spec.BMCCredentials.Username)
+	setEnv(ctx, ds, vinov1.EnvVarBasicAuthPassword, vino.Spec.BMCCredentials.Password)
 
 	// this will help avoid colisions if we have two vino CRs in the same namespace
 	ds.Spec.Selector.MatchLabels[vinov1.VinoLabelDSNameSelector] = vino.Name
@@ -228,30 +230,37 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 	ds.Spec.Template.ObjectMeta.Labels[vinov1.VinoLabelDSNamespaceSelector] = vino.Namespace
 }
 
-func setEnv(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
-	for i, c := range ds.Spec.Template.Spec.Containers {
-		var set bool
-		for j, envVar := range c.Env {
-			if envVar.Name == vinov1.EnvVarVMInterfaceName {
-				logr.FromContext(ctx).Info("found env variable with vm interface name on daemonset template, overriding it",
-					"vino instance", vino.Namespace+"/"+vino.Name,
-					"container name", c.Name,
-					"value", envVar.Value,
-				)
-				ds.Spec.Template.Spec.Containers[i].Env[j].Value = vino.Spec.VMBridge
-				set = true
-				break
-			}
-		}
-		if !set {
-			ds.Spec.Template.Spec.Containers[i].Env = append(
-				ds.Spec.Template.Spec.Containers[i].Env, corev1.EnvVar{
-					Name:  vinov1.EnvVarVMInterfaceName,
-					Value: vino.Spec.VMBridge,
-				},
+// setEnv iterates over all container specs and sets the variable varName to
+// varValue. If varName already exists for a container, setEnv overrides it
+func setEnv(ctx context.Context, ds *appsv1.DaemonSet, varName, varValue string) {
+	for i := range ds.Spec.Template.Spec.Containers {
+		setContainerEnv(ctx, &ds.Spec.Template.Spec.Containers[i], varName, varValue)
+	}
+}
+
+// setContainerEnv sets the variable varName to varValue for the container. If
+// varName already exists for the container, setContainerEnv overrides it
+func setContainerEnv(ctx context.Context, container *corev1.Container, varName, varValue string) {
+	for j, envVar := range container.Env {
+		if envVar.Name == varName {
+			logr.FromContext(ctx).Info("found pre-existing environment variable on daemonset template, overriding it",
+				"container name", container.Name,
+				"environment variable", envVar.Name,
+				"old value", envVar.Value,
+				"new value", varValue,
 			)
+			container.Env[j].Value = varValue
+			return
 		}
 	}
+
+	// If we've made it this far, the variable didn't exist.
+	container.Env = append(
+		container.Env, corev1.EnvVar{
+			Name:  varName,
+			Value: varValue,
+		},
+	)
 }
 
 func (r *VinoReconciler) waitDaemonSet(ctx context.Context, check dsWaitCondition, ds *appsv1.DaemonSet) error {

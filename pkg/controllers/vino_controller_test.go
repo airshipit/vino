@@ -34,23 +34,13 @@ var _ = Describe("Test Setting Env variables", func() {
 	Context("when daemonset is created", func() {
 		l := logr.Discard()
 		ctx := logr.NewContext(context.Background(), l)
-		Context("no containers defined in damonset", func() {
-			It("does nothing", func() {
-				ds := testDS()
-				setEnv(ctx, ds, testVINO())
-				Expect(ds.Spec.Template.Spec.Containers).To(HaveLen(0))
-			})
-
-		})
 		Context("when daemonset has containers", func() {
-			It("sets env interface variable to every container", func() {
-				vino := testVINO()
+			It("sets env variable to every container", func() {
 				ifName := "eth0"
-				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = make([]corev1.Container, 3)
 
-				setEnv(ctx, ds, vino)
+				setEnv(ctx, ds, vinov1.EnvVarVMInterfaceName, ifName)
 
 				for _, container := range ds.Spec.Template.Spec.Containers {
 					Expect(container.Env).To(HaveLen(1))
@@ -60,24 +50,22 @@ var _ = Describe("Test Setting Env variables", func() {
 			})
 
 		})
-		Context("when daemonset has container with wrong env var values", func() {
+		Context("when daemonset has container with pre-existing env var values", func() {
 			It("overrides that variable in the container", func() {
-				vino := testVINO()
 				ifName := "eth0"
-				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = []corev1.Container{
 					{
 						Env: []corev1.EnvVar{
 							{
 								Name:  vinov1.EnvVarVMInterfaceName,
-								Value: "wrong-value",
+								Value: "old-value",
 							},
 						},
 					},
 				}
 
-				setEnv(ctx, ds, vino)
+				setEnv(ctx, ds, vinov1.EnvVarVMInterfaceName, ifName)
 				Expect(ds.Spec.Template.Spec.Containers).To(HaveLen(1))
 				container := ds.Spec.Template.Spec.Containers[0]
 				Expect(container.Env).To(HaveLen(1))
@@ -86,21 +74,19 @@ var _ = Describe("Test Setting Env variables", func() {
 			})
 		})
 		Context("when daemonset containers don't have required variable", func() {
-			It("overrides that variable in the container", func() {
-				vino := testVINO()
+			It("adds that variable to all the containers", func() {
 				ifName := "eth0"
-				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = []corev1.Container{
 					{
 						Env: []corev1.EnvVar{
 							{
 								Name:  "bar",
-								Value: "wrong-value",
+								Value: "old-value",
 							},
 							{
 								Name:  "foo",
-								Value: "wrong-value",
+								Value: "old-value",
 							},
 						},
 					},
@@ -108,17 +94,17 @@ var _ = Describe("Test Setting Env variables", func() {
 						Env: []corev1.EnvVar{
 							{
 								Name:  "foo",
-								Value: "wrong-value",
+								Value: "old-value",
 							},
 							{
 								Name:  "bar",
-								Value: "wrong-value",
+								Value: "old-value",
 							},
 						},
 					},
 				}
 
-				setEnv(ctx, ds, vino)
+				setEnv(ctx, ds, vinov1.EnvVarVMInterfaceName, ifName)
 
 				Expect(ds.Spec.Template.Spec.Containers).To(HaveLen(2))
 				for _, container := range ds.Spec.Template.Spec.Containers {
@@ -139,31 +125,28 @@ var _ = Describe("Test Setting Env variables", func() {
 		})
 		Context("when daemonset container has many variables", func() {
 			It("it sets required variable only single time", func() {
-				vino := testVINO()
 				ifName := "eth0"
-				vino.Spec.VMBridge = ifName
 				ds := testDS()
 				ds.Spec.Template.Spec.Containers = []corev1.Container{
 					{
 						Env: []corev1.EnvVar{
 							{
 								Name:  "foo",
-								Value: "wrong-value",
+								Value: "old-value",
 							},
 							{
 								Name:  vinov1.EnvVarVMInterfaceName,
-								Value: "wrong-value",
+								Value: "old-value",
 							},
-
 							{
 								Name:  "bar",
-								Value: "wrong-value",
+								Value: "old-value",
 							},
 						},
 					},
 				}
 
-				setEnv(ctx, ds, vino)
+				setEnv(ctx, ds, vinov1.EnvVarVMInterfaceName, ifName)
 				Expect(ds.Spec.Template.Spec.Containers).To(HaveLen(1))
 				container := ds.Spec.Template.Spec.Containers[0]
 				Expect(container.Env).To(HaveLen(3))

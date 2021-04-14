@@ -39,6 +39,14 @@ const (
 	VinoNodeNetworkValuesAnnotation = "airshipit.org/vino.network-values"
 )
 
+// Constants for BasicAuth
+const (
+	EnvVarBasicAuthUsername = "BASIC_AUTH_USERNAME"
+	// NOTE: gosec thinks this is a hard-coded password, when in reality it
+	// is the name of an environment variable. We'll suppress that error
+	EnvVarBasicAuthPassword = "BASIC_AUTH_PASSWORD" //nolint:gosec
+)
+
 // VinoSpec defines the desired state of Vino
 type VinoSpec struct {
 	// Define nodelabel parameters

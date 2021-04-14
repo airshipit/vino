@@ -50,17 +50,19 @@ spec:
             - name: etc-storage
               mountPath: /etc/libvirt/storage
         - name: sushy
-          ports:
-            - containerPort: 8000
-              hostPort: 8000
           image: quay.io/metal3-io/sushy-tools
           imagePullPolicy: IfNotPresent
-          command: ["/usr/local/bin/sushy-emulator"]
+          command: ["/usr/local/bin/sushy-emulator", "--port", "5000"]
           volumeMounts:
             - name: var-run-libvirt
               mountPath: /var/run/libvirt
             - name: var-lib-libvirt
               mountPath: /var/lib/libvirt
+        - name: vino-reverse-proxy
+          image: quay.io/airshipit/vino-reverse-proxy
+          ports:
+            - containerPort: 8000
+              hostPort: 8000
         - name: labeler
           image: quay.io/airshipit/nodelabeler
           imagePullPolicy: IfNotPresent
