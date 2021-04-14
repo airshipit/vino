@@ -222,7 +222,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 	}
 
 	logger.Info("annotating node", "node", k8sNode.Name)
-	if err = r.annotateNode(ctx, k8sNode, nodeNetworkValues, nodeNetworks); err != nil {
+	if err = r.annotateNode(ctx, k8sNode, nodeNetworkValues, vino); err != nil {
 		return err
 	}
 	return nil
@@ -298,11 +298,13 @@ func (r *VinoReconciler) domainSpecificNetValues(
 func (r *VinoReconciler) annotateNode(ctx context.Context,
 	k8sNode *corev1.Node,
 	domainInterfaceValues map[string]generatedValues,
-	networks []vinov1.Network) error {
+	vino *vinov1.Vino) error {
 	logr.FromContext(ctx).Info("Getting GW bridge IP from node", "node", k8sNode.Name)
 	builderValues := vinov1.Builder{
-		Domains:  make(map[string]vinov1.BuilderDomain),
-		Networks: networks,
+		Domains:          make(map[string]vinov1.BuilderDomain),
+		Networks:         vino.Spec.Networks,
+		Nodes:            vino.Spec.Nodes,
+		CPUConfiguration: vino.Spec.CPUConfiguration,
 	}
 	for domainName, domain := range domainInterfaceValues {
 		builderDomain := vinov1.BuilderDomain{

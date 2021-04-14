@@ -44,7 +44,7 @@ type VinoSpec struct {
 	// Define nodelabel parameters
 	NodeSelector *NodeSelector `json:"nodeSelector,omitempty"`
 	// Define CPU configuration
-	CPUConfiguration *CPUConfiguration `json:"configuration,omitempty"`
+	CPUConfiguration CPUConfiguration `json:"configuration,omitempty"`
 	// Define network parameters
 	Networks []Network `json:"networks,omitempty"`
 	// Define node details

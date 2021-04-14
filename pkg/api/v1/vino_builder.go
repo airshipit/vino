@@ -18,9 +18,12 @@ package v1
 
 // TODO (kkalynovskyi) create an API object for this, and refactor vino-builder to read it from kubernetes.
 type Builder struct {
-	GWIPBridge string                   `json:"gwIPBridge,omitempty"`
-	Networks   []Network                `json:"networks,omitempty"`
-	Domains    map[string]BuilderDomain `json:"domains,omitempty"`
+	GWIPBridge string    `json:"gwIPBridge,omitempty"`
+	Networks   []Network `json:"networks,omitempty"`
+	Nodes      []NodeSet `json:"nodes,omitempty"`
+	// (TODO) change json tag to cpuConfiguration when vino-builder has these chanages as well
+	CPUConfiguration CPUConfiguration         `json:"configuration,omitempty"`
+	Domains          map[string]BuilderDomain `json:"domains,omitempty"`
 }
 
 type BuilderNetworkInterface struct {
