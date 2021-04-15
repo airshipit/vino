@@ -41,6 +41,8 @@ spec:
               mountPath: /sys/fs/cgroup
             - name: logs
               mountPath: /var/log/libvirt
+            - name: vino-storage-pool
+              mountPath: /var/lib/libvirt/vino
         - name: sushy
           ports:
             - containerPort: 8000
@@ -51,6 +53,8 @@ spec:
           volumeMounts:
             - name: var-run-libvirt
               mountPath: /var/run/libvirt
+            - name: var-lib-libvirt-images
+              mountPath: /var/lib/libvirt/images
         - name: labeler
           image: quay.io/airshipit/nodelabeler
           imagePullPolicy: IfNotPresent
@@ -60,12 +64,13 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
         - name: vino-builder
-          command:
-              - bash
-              - -cex
-              - |
-                /entrypoint.sh || true
-                tail -f /dev/null
+          readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            exec:
+              command:
+              - cat
+              - /tmp/healthy
           securityContext:
             privileged: true
             runAsUser: 0
@@ -143,4 +148,6 @@ spec:
             name: vino-storage-templates
             defaultMode: 0555
         - name: pod-tmp
+          emptyDir: {}
+        - name: vino-storage-pool
           emptyDir: {}
