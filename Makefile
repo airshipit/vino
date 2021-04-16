@@ -2,6 +2,7 @@
 # IMG ?= controller:latest
 CONTROLLER_IMG ?= quay.io/airshipit/vino
 NODE_LABELER_IMG ?= quay.io/airshipit/nodelabeler
+VINO_BUILDER_IMG ?= quay.io/airshipit/vino-builder
 
 # Produce CRDs that work back to Kubernetes 1.16
 CRD_OPTIONS ?= crd:crdVersions=v1
@@ -78,6 +79,11 @@ docker-build-controller:
 docker-build-nodelabeler:
 	docker build -f nodelabeler/Dockerfile . ${DOCKER_PROXY_FLAGS} -t ${NODE_LABELER_IMG}
 
+# Build the vino-builder docker image
+# If DOCKER_PROXY_FLAGS values are empty, we are fine with that
+docker-build-vino-builder:
+	docker build -f vino-builder/Dockerfile . ${DOCKER_PROXY_FLAGS} -t ${VINO_BUILDER_IMG}
+
 # Push the controller docker image
 docker-push-controller:
 	docker push ${CONTROLLER_IMG}
@@ -85,6 +91,10 @@ docker-push-controller:
 # Push the nodelabeler docker image
 docker-push-nodelabeler:
 	docker push ${NODE_LABELER_IMG}
+
+# Push the vino-builder docker image
+docker-push-vino-builder:
+	docker push ${VINO_BUILDER_IMG}
 
 # Generate API reference documentation
 api-docs: gen-crd-api-reference-docs

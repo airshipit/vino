@@ -41,3 +41,17 @@
   shell: docker image inspect quay.io/airshipit/nodelabeler
   args:
     chdir: "{{ zuul.project.src_dir }}"
+
+- name: Buid vino-builder image
+  make:
+    chdir: "{{ zuul.project.src_dir }}"
+    target: docker-build-vino-builder
+    params:
+      PROXY: "{{ proxy.http }}"
+      NO_PROXY: "{{ proxy.noproxy }}"
+      USE_PROXY: "{{ proxy.enabled | lower }}"
+
+- name: Verify vino-builder image exists
+  shell: docker image inspect quay.io/airshipit/vino-builder
+  args:
+    chdir: "{{ zuul.project.src_dir }}"

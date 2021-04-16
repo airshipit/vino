@@ -114,7 +114,7 @@ spec:
           ports:
             - containerPort: 8001
               hostPort: 8001
-          image: quay.io/airshipit/vino-builder:latest-ubuntu_bionic
+          image: quay.io/airshipit/vino-builder
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: flavors

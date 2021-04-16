@@ -45,3 +45,8 @@
       make:
         chdir: "{{ zuul.project.src_dir }}"
         target: docker-push-nodelabeler
+
+    - name: Push vino-builder image with latest tag
+      make:
+        chdir: "{{ zuul.project.src_dir }}"
+        target: docker-push-vino-builder

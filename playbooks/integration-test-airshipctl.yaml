@@ -22,6 +22,7 @@
         ./tools/deployment/install-airship.sh
         ./tools/deployment/configure-airship.sh
         make docker-build-controller
+        make docker-build-vino-builder
         ./tools/deployment/run-test-plan.sh
       args:
         chdir: "{{ zuul.project.src_dir }}"

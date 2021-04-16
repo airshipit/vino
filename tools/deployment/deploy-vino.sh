@@ -3,6 +3,7 @@
 set -xe
 sudo snap install kustomize && sudo snap install go --classic
 make docker-build-controller
+make docker-build-vino-builder
 make deploy
 kubectl get po -A
 #Wait for vino controller manager Pod.
