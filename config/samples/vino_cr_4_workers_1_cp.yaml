@@ -43,8 +43,6 @@ spec:
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
-      labels:
-        vmFlavor: master
       bootInterfaceName: pxe
       networkInterfaces:
         - name: vm-infra
@@ -62,8 +60,6 @@ spec:
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
-      labels:
-        vmFlavor: worker
       bootInterfaceName: pxe
       networkInterfaces:
         - name: vm-infra

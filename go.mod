@@ -1,6 +1,6 @@
 module vino
 
-go 1.13
+go 1.14
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect

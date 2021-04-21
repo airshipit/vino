@@ -3,8 +3,8 @@
 CONTROLLER_IMG ?= quay.io/airshipit/vino
 NODE_LABELER_IMG ?= quay.io/airshipit/nodelabeler
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+# Produce CRDs that work back to Kubernetes 1.16
+CRD_OPTIONS ?= crd:crdVersions=v1
 
 TOOLBINDIR          := tools/bin
 
