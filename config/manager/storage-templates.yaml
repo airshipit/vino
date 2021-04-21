@@ -4,7 +4,7 @@ libvirtStorage:
       <pool type='dir'>
         <name>vino-default</name>
         <target>
-          <path>/var/lib/libvirt/vino</path>
+          <path>/var/lib/libvirt/vino-pool</path>
           <permissions>
             <mode>0711</mode>
             <owner>0</owner>

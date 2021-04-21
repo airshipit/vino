@@ -31,8 +31,6 @@ spec:
             - name: var-lib-libvirt
               mountPath: /var/lib/libvirt
               mountPropagation: Bidirectional
-            - name: var-lib-libvirt-images
-              mountPath: /var/lib/libvirt/images
             - name: run
               mountPath: /run
             - name: dev
@@ -41,8 +39,16 @@ spec:
               mountPath: /sys/fs/cgroup
             - name: logs
               mountPath: /var/log/libvirt
-            - name: vino-storage-pool
-              mountPath: /var/lib/libvirt/vino
+            - name: var-lib-vino-pool
+              mountPath: /var/lib/libvirt/vino-pool
+            - name: etc-qemu
+              mountPath: /etc/libvirt/qemu
+            - name: etc-nwfilter
+              mountPath: /etc/libvirt/nwfilter
+            - name: etc-hooks
+              mountPath: /etc/libvirt/hooks
+            - name: etc-storage
+              mountPath: /etc/libvirt/storage
         - name: sushy
           ports:
             - containerPort: 8000
@@ -53,8 +59,8 @@ spec:
           volumeMounts:
             - name: var-run-libvirt
               mountPath: /var/run/libvirt
-            - name: var-lib-libvirt-images
-              mountPath: /var/lib/libvirt/images
+            - name: var-lib-libvirt
+              mountPath: /var/lib/libvirt
         - name: labeler
           image: quay.io/airshipit/nodelabeler
           imagePullPolicy: IfNotPresent
@@ -98,6 +104,8 @@ spec:
               mountPath: /var/lib/libvirt
             - name: var-run-libvirt
               mountPath: /var/run/libvirt
+            - name: var-lib-vino-pool
+              mountPath: /var/lib/libvirt/vino-pool
             - name: run
               mountPath: /run
             - name: dev
@@ -113,9 +121,6 @@ spec:
         - name: var-lib-libvirt
           hostPath:
             path: /var/lib/libvirt
-        - name: var-lib-libvirt-images
-          hostPath:
-            path: /var/lib/libvirt/images
         - name: run
           hostPath:
             path: /run
@@ -149,5 +154,23 @@ spec:
             defaultMode: 0555
         - name: pod-tmp
           emptyDir: {}
-        - name: vino-storage-pool
-          emptyDir: {}
+        - name: var-lib-vino-pool
+          hostPath:
+            path: /var/lib/vino-pool
+            type: DirectoryOrCreate
+        - name: etc-qemu
+          hostPath:
+            path: /etc/vino-qemu
+            type: DirectoryOrCreate
+        - name: etc-storage
+          hostPath:
+            path: /etc/vino-storage
+            type: DirectoryOrCreate
+        - name: etc-nwfilter
+          hostPath:
+            path: /etc/vino-nwfilter
+            type: DirectoryOrCreate
+        - name: etc-hooks
+          hostPath:
+            path: /etc/vino-hooks
+            type: DirectoryOrCreate
