@@ -1012,6 +1012,18 @@ NamespacedName
 <p>NetworkDataTemplate must have a template key</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>bootInterfaceName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BootInterfaceName references the interface name in the list of NetworkInterfaces
+Vino will take this interface find its mac address and use it as bootMACAddress for BMH</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>

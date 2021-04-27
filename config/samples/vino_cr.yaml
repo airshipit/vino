@@ -13,9 +13,6 @@ spec:
       beta.kubernetes.io/os: linux
   configuration:
     cpuExclude: 0-1
-    redfishCredentialSecret:
-      name: redfishSecret
-      namespace: airship-system
   networks:
     - name: management
       subnet: 192.168.2.0/20
@@ -50,24 +47,12 @@ spec:
       # libvirtTemplate:
       #  name: libvirt-template-master
       #  namespace: vino-system
+      bootInterfaceName: management
       networkInterfaces:
         - name: management
           type: bridge
           network: management
           mtu: 1500
-          options:
-            bridgeName: vminfra-bridge
-        - name: external
-          type: sriov-bond
-          network: external
-          mtu: 9100
-          options:
-            # this is an 'open-ended' set of k/v pairs, validation is perfomed by vino rather than crd schema.
-            pf: "[enp29s0f0,enp219s1f1]"
-            vlan: "100"
-            bond_mode: 802.3ad
-            bond_xmit_hash_policy: layer3+4
-            bond_miimon: "100"
       diskDrives:
         - name: root
           type: qcow2
@@ -87,6 +72,7 @@ spec:
       # libvirtTemplate:
       #  name: libvirt-template-worker
       #  namespace: vino-system
+      bootInterfaceName: management
       networkInterfaces:
         - name: management
           type: bridge
@@ -94,17 +80,6 @@ spec:
           mtu: 1500
           options:
             bridgeName: vminfra-bridge
-        - name: external
-          type: sriov-bond
-          network: external
-          mtu: 9100
-          options:
-            # this is an 'open-ended' set of k/v pairs, validation is perfomed by vino rather than crd schema.
-            pf: "[enp29s0f0,enp219s1f1]"
-            vlan: "100"
-            bond_mode: 802.3ad
-            bond_xmit_hash_policy: layer3+4
-            bond_miimon: "100"
       diskDrives:
         - name: root
           type: qcow2

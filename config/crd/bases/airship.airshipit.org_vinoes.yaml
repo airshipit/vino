@@ -147,6 +147,11 @@ spec:
                       that will be created These labels will override keys from k8s
                       node, that are specified in vino.NodeLabelKeysToCopy
                     type: object
+                  bootInterfaceName:
+                    description: BootInterfaceName references the interface name in
+                      the list of NetworkInterfaces Vino will take this interface
+                      find its mac address and use it as bootMACAddress for BMH
+                    type: string
                   count:
                     type: integer
                   diskDrives:

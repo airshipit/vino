@@ -50,8 +50,9 @@ type networkTemplateValues struct {
 }
 
 type generatedValues struct {
-	IPAddresses  map[string]string
-	MACAddresses map[string]string
+	IPAddresses   map[string]string
+	MACAddresses  map[string]string
+	BootMACAdress string
 }
 
 func (r *VinoReconciler) ensureBMHs(ctx context.Context, vino *vinov1.Vino) error {
@@ -210,6 +211,7 @@ func (r *VinoReconciler) createBMHperPod(ctx context.Context, vino *vinov1.Vino,
 						CredentialsName:                creds,
 						DisableCertificateVerification: true,
 					},
+					BootMACAddress: domainNetValues.Generated.BootMACAdress,
 				},
 			}
 			objKey := client.ObjectKeyFromObject(bmh)
@@ -255,6 +257,7 @@ func (r *VinoReconciler) domainSpecificNetValues(
 	// Allocate an IP for each of this BMH's network interfaces
 	ipAddresses := map[string]string{}
 	macAddresses := map[string]string{}
+	var bootMAC string
 	for _, iface := range node.NetworkInterfaces {
 		networkName := iface.NetworkName
 		subnet := ""
@@ -281,16 +284,20 @@ func (r *VinoReconciler) domainSpecificNetValues(
 		}
 		ipAddresses[networkName] = ipAddress
 		macAddresses[iface.Name] = macAddress
+		if iface.Name == node.BootInterfaceName {
+			bootMAC = macAddress
+		}
 		logr.FromContext(ctx).Info("Got MAC and IP for the network and node",
-			"MAC", macAddress, "IP", ipAddress, "bmh name", bmhName)
+			"MAC", macAddress, "IP", ipAddress, "bmh name", bmhName, "bootMAC", bootMAC)
 	}
 	return networkTemplateValues{
 		Node:     node,
 		BMHName:  bmhName,
 		Networks: networks,
 		Generated: generatedValues{
-			IPAddresses:  ipAddresses,
-			MACAddresses: macAddresses,
+			IPAddresses:   ipAddresses,
+			MACAddresses:  macAddresses,
+			BootMACAdress: bootMAC,
 		},
 	}, nil
 }

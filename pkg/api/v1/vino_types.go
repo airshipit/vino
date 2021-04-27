@@ -127,6 +127,9 @@ type NodeSet struct {
 	DiskDrives                []DiskDrivesTemplate `json:"diskDrives,omitempty"`
 	// NetworkDataTemplate must have a template key
 	NetworkDataTemplate NamespacedName `json:"networkDataTemplate,omitempty"`
+	// BootInterfaceName references the interface name in the list of NetworkInterfaces
+	// Vino will take this interface find its mac address and use it as bootMACAddress for BMH
+	BootInterfaceName string `json:"bootInterfaceName,omitempty"`
 }
 
 // NamespacedName to be used to spawn VMs
