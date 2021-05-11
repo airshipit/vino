@@ -1,0 +1,12 @@
+resources:
+- ironic-var-substitution.yaml
+- image-versions.yaml
+- ../../../../airshipctl/manifests/function/baremetal-operator/
+
+transformers:
+- ../../../../airshipctl/manifests/function/baremetal-operator/replacements
+- watched_namespace.yaml
+- cleanup
+
+generators:
+- env-vars.yaml

@@ -49,20 +49,48 @@ spec:
               mountPath: /etc/libvirt/hooks
             - name: etc-storage
               mountPath: /etc/libvirt/storage
+            - name: var-lib-vino
+              mountPath: /var/lib/vino
         - name: sushy
           image: quay.io/metal3-io/sushy-tools
           imagePullPolicy: IfNotPresent
-          command: ["/usr/local/bin/sushy-emulator", "--port", "5000"]
+          command: ["/usr/local/bin/sushy-emulator", "-i", "::", "--debug", "--port", "8000"]
           volumeMounts:
             - name: var-run-libvirt
               mountPath: /var/run/libvirt
             - name: var-lib-libvirt
               mountPath: /var/lib/libvirt
-        - name: vino-reverse-proxy
-          image: quay.io/airshipit/vino-reverse-proxy
-          ports:
-            - containerPort: 8000
-              hostPort: 8000
+          readinessProbe:
+              httpGet:
+                path: /redfish/v1/Systems
+                host: 127.0.0.1
+                port: 8000
+              initialDelaySeconds: 5
+              periodSeconds: 10
+          livenessProbe:
+              httpGet:
+                path: /redfish/v1/Systems
+                host: 127.0.0.1
+                port: 8000
+              initialDelaySeconds: 10
+              periodSeconds: 20
+        # - name: vino-reverse-proxy
+        #   image: quay.io/airshipit/vino-reverse-proxy
+        #   ports:
+        #     - containerPort: 8000
+        #       hostPort: 8000
+        #   readinessProbe:
+        #     tcpSocket:
+        #       port: 8000
+        #       host: 127.0.0.1
+        #     initialDelaySeconds: 10
+        #     periodSeconds: 5
+        #   livenessProbe:
+        #     tcpSocket:
+        #       port: 8000
+        #       host: 127.0.0.1
+        #     initialDelaySeconds: 30
+        #     periodSeconds: 30
         - name: labeler
           image: quay.io/airshipit/nodelabeler
           imagePullPolicy: IfNotPresent
@@ -175,4 +203,8 @@ spec:
         - name: etc-hooks
           hostPath:
             path: /etc/vino-hooks
+            type: DirectoryOrCreate
+        - name: var-lib-vino
+          hostPath:
+            path: /var/lib/vino
             type: DirectoryOrCreate

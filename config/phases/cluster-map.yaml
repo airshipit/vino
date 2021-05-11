@@ -1,0 +1,12 @@
+---
+apiVersion: airshipit.org/v1alpha1
+kind: ClusterMap
+metadata:
+  name: main-map
+map:
+  minikube:
+    kubeconfigSources:
+      - type: "filesystem"
+        filesystem:
+          path: ~/.kube/config
+          contextName: minikube

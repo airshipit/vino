@@ -1,0 +1,23 @@
+apiVersion: builtin
+kind: PatchStrategicMergeTransformer
+metadata:
+  name: bmo-cleanup
+patches: |-
+  ---
+  apiVersion: airshipit.org/v1alpha1
+  kind: VersionsCatalogue
+  metadata:
+    name: versions-airshipctl
+  $patch: delete
+  ---
+  apiVersion: airshipit.org/v1alpha1
+  kind: NetworkCatalogue
+  metadata:
+    name: networking
+  $patch: delete
+  ---
+  apiVersion: airshipit.org/v1alpha1
+  kind: VariableCatalogue
+  metadata:
+    name: env-vars-catalogue
+  $patch: delete

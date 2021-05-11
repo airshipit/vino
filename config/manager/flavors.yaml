@@ -2,10 +2,8 @@ flavors:
   master:
     vcpus: 1
     memory: 4
-    hugepages: true
     rootSize: 30
   worker:
     vcpus: 1
     memory: 2
-    hugepages: true
     rootSize: 10

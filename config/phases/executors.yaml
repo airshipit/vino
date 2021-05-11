@@ -1,0 +1,72 @@
+---
+apiVersion: airshipit.org/v1alpha1
+kind: KubernetesApply
+metadata:
+  name: default-applier
+config:
+  waitOptions:
+    timeout: 1000
+  pruneOptions:
+    prune: false
+---
+apiVersion: airshipit.org/v1alpha1
+kind: GenericContainer
+metadata:
+  name: node-labels-rack-server
+spec:
+  image: quay.io/airshipit/toolbox:latest
+  hostNetwork: true
+  envVars:
+  - NODE_LABELS=airshipit.org/server=s1 airshipit.org/rack=r1
+configRef:
+  kind: ConfigMap
+  name: node-labler
+  apiVersion: v1
+---
+apiVersion: airshipit.org/v1alpha1
+kind: GenericContainer
+metadata:
+  name: check-daemonset
+spec:
+  image: quay.io/airshipit/toolbox:latest
+  hostNetwork: true
+configRef:
+  kind: ConfigMap
+  name: check-daemonset
+  apiVersion: v1
+---
+apiVersion: airshipit.org/v1alpha1
+kind: GenericContainer
+metadata:
+  name: check-bmh
+spec:
+  image: quay.io/airshipit/toolbox:latest
+  hostNetwork: true
+configRef:
+  kind: ConfigMap
+  name: check-bmh
+  apiVersion: v1
+---
+apiVersion: airshipit.org/v1alpha1
+kind: GenericContainer
+metadata:
+  name: wait-bmh
+spec:
+  image: quay.io/airshipit/toolbox:latest
+  hostNetwork: true
+configRef:
+  kind: ConfigMap
+  name: wait-bmh
+  apiVersion: v1
+---
+apiVersion: airshipit.org/v1alpha1
+kind: GenericContainer
+metadata:
+  name: delete-vino-cr
+spec:
+  image: quay.io/airshipit/toolbox:latest
+  hostNetwork: true
+configRef:
+  kind: ConfigMap
+  name: delete-vino-cr
+  apiVersion: v1

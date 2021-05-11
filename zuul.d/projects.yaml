@@ -20,18 +20,21 @@
       image_repo: quay.io
     check:
       jobs:
-        -  airship-deploy-vino
+        -  airship-deploy-vino-bash
+        - airship-deploy-vino-airshipctl
         -  airship-vino-test-suite
         -  airship-vino-build-images
         -  airship-vino-check-github-issues
     gate:
       jobs:
-        - airship-deploy-vino
+        - airship-deploy-vino-bash
+        - airship-deploy-vino-airshipctl
         - airship-vino-test-suite
         - airship-vino-build-images
     post:
       jobs:
         - airship-vino-upload-git-mirror
-        - airship-deploy-vino
+        - airship-deploy-vino-airshipctl
+        - airship-deploy-vino-bash
         - airship-vino-test-suite
         - airship-vino-publish-images

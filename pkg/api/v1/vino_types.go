@@ -37,6 +37,8 @@ const (
 	VinoDefaultGatewayBridgeLabel = "airshipit.org/vino.nodebridgegw"
 	// VinoNodeNetworkValuesAnnotation vino controller saves ip and mac address information for the node in it
 	VinoNodeNetworkValuesAnnotation = "airshipit.org/vino.network-values"
+	// VinoNetworkDataTemplateDefaultKey expected template key networkdata template secret for vino node
+	VinoNetworkDataTemplateDefaultKey = "template"
 )
 
 // Constants for BasicAuth

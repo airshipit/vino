@@ -1,0 +1,25 @@
+- hosts: primary
+  tasks:
+    - name: Run ensure-docker
+      include_role:
+        name: ensure-docker
+    - name: Install Dependent Packages
+      apt:
+        pkg:
+          - debconf
+          - make
+          - wget
+          - snapd
+      become: yes
+    - name:  Set up requirements for kubernetes
+      include_role:
+        name: clear-firewall
+    - name: Install kubernetes, deploy vino, run bash integration tests
+      shell: |
+        set -xe;
+        ./tools/deployment/configure-bridges.sh
+        ./tools/deployment/install-k8s.sh
+        ./tools/deployment/deploy-vino.sh
+        ./tools/deployment/test-cr.sh
+      args:
+        chdir: "{{ zuul.project.src_dir }}"

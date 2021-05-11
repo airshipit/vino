@@ -22,9 +22,17 @@
         pass-to-parent: true
 
 - job:
-    name: airship-deploy-vino
+    name: airship-deploy-vino-bash
     nodeset: ubuntu-focal-nested
-    run: playbooks/integration-test.yaml
+    run: playbooks/integration-test-bash.yaml
+    post-run: playbooks/vino-collect-logs.yaml
+    description: Deploys kubernetes and vino
+    timeout: 9600
+
+- job:
+    name: airship-deploy-vino-airshipctl
+    nodeset: ubuntu-focal-nested
+    run: playbooks/integration-test-airshipctl.yaml
     post-run: playbooks/vino-collect-logs.yaml
     description: Deploys kubernetes and vino
     timeout: 9600

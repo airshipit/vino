@@ -1,0 +1,34 @@
+# The default versions catalogue for functions hosted in the airshipctl project.
+# These values can be overridden at the site, type, etc levels as appropriate.
+apiVersion: airshipit.org/v1alpha1
+kind: VersionsCatalogue
+metadata:
+  name: versions-airshipctl
+  labels:
+    airshipit.org/deploy-k8s: "false"
+spec:
+  images:
+    baremetal_operator:
+      ironic: # ironic Deployment
+        init_bootstrap:
+          image: quay.io/centos/centos:8.3.2011
+        init_images:
+          image: quay.io/airshipit/ipa:latest
+        qcow_bundle:
+          image: quay.io/airshipit/qcow-bundle:latest-ubuntu_focal
+        dnsmasq:
+          image: quay.io/metal3-io/ironic:capm3-v0.4.0
+        httpd:
+          image: quay.io/metal3-io/ironic:capm3-v0.4.0
+        ironic:
+          image: quay.io/metal3-io/ironic:capm3-v0.4.0
+        ironic_inspector:
+          image: quay.io/metal3-io/ironic-inspector:capm3-v0.4.0
+      metal3_baremetal_operator: # metal3-baremetal-operator Deployment
+        baremetal_operator:
+          image: quay.io/metal3-io/baremetal-operator:capm3-v0.4.0
+        ironic_proxy:
+          image: alpine/socat
+        ironic_inspector_proxy:
+          image: alpine/socat
+

@@ -1,0 +1,4 @@
+resources:
+- ippool.yaml
+- vino_cr.yaml
+- network-template-secret.yaml

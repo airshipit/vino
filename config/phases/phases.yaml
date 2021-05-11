@@ -1,0 +1,103 @@
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: deploy-bmo
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: KubernetesApply
+    name: default-applier
+  documentEntryPoint: config/phases/baremetal-operator
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: deploy-crds
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: KubernetesApply
+    name: default-applier
+  documentEntryPoint: config/crd
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: deploy-controller
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: KubernetesApply
+    name: default-applier
+  documentEntryPoint: config/default
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: node-labels-rack-server
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: GenericContainer
+    name: node-labels-rack-server
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: deploy-vino-cr
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: KubernetesApply
+    name: default-applier
+  documentEntryPoint: config/samples
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: daemonset-readiness
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: GenericContainer
+    name: check-daemonset
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: bmh-count
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: GenericContainer
+    name: check-bmh
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: wait-bmh
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: GenericContainer
+    name: wait-bmh
+---
+apiVersion: airshipit.org/v1alpha1
+kind: Phase
+metadata:
+  name: delete-vino-cr
+  clusterName: minikube
+config:
+  executorRef:
+    apiVersion: airshipit.org/v1alpha1
+    kind: GenericContainer
+    name: delete-vino-cr

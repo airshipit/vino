@@ -79,20 +79,22 @@ flavorTemplates:
           </interface>
           {% endfor %}
 
-          <serial type="pty">
-            <source path="/dev/pts/3"/>
-            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
-            <target type="isa-serial" port="0">
-              <model name="isa-serial"/>
-            </target>
-            <alias name="serial0"/>
+          <serial type='file'>
+            <source path='/var/lib/libvirt/{{ nodename }}-console.log'/>
           </serial>
-          <console type="pty" tty="/dev/pts/3">
-            <source path="/dev/pts/3"/>
-            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
-            <target type="serial" port="0"/>
-            <alias name="serial0"/>
+          <serial type='pty'/>
+
+          <console type='file'>
+            <source path='/var/lib/libvirt/{{ nodename }}-console.log'/>
+            <target type='serial'/>
           </console>
+
+          {% if domain.enable_vnc | default(false) %}
+          <graphics type='vnc' autoport='yes' listen='0.0.0.0'>
+            <listen type='address' address='0.0.0.0'/>
+          </graphics>
+          {% endif %}
+
           <memballoon model="virtio">
             <stats period="10"/>
             <alias name="balloon0"/>
@@ -193,20 +195,22 @@ flavorTemplates:
           </interface>
           {% endfor %}
 
-          <serial type="pty">
-            <source path="/dev/pts/3"/>
-            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
-            <target type="isa-serial" port="0">
-              <model name="isa-serial"/>
-            </target>
-            <alias name="serial0"/>
+          <serial type='file'>
+            <source path='/var/lib/libvirt/{{ nodename }}-console.log'/>
           </serial>
-          <console type="pty" tty="/dev/pts/3">
-            <source path="/dev/pts/3"/>
-            <log file="/var/lib/vino/instances/{{ nodename }}.console.log" append="off"/>
-            <target type="serial" port="0"/>
-            <alias name="serial0"/>
+          <serial type='pty'/>
+
+          <console type='file'>
+            <source path='/var/lib/libvirt/{{ nodename }}-console.log'/>
+            <target type='serial'/>
           </console>
+
+          {% if domain.enable_vnc | default(false) %}
+          <graphics type='vnc' autoport='yes' listen='0.0.0.0'>
+            <listen type='address' address='0.0.0.0'/>
+          </graphics>
+          {% endif %}
+
           <memballoon model="virtio">
             <stats period="10"/>
             <alias name="balloon0"/>

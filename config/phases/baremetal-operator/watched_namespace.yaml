@@ -1,0 +1,22 @@
+# These rules inject host-specific information from the `host-catalogue`
+# into the hostgenerator-m3 function's Template plugin config.
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: watched_namespace_change
+  annotations:
+    config.kubernetes.io/function: |-
+      container:
+        image: quay.io/airshipit/replacement-transformer:v2
+replacements:
+# Container versions for the ironic Deployment
+- source:
+    objref:
+      kind: VariableCatalogue
+      name: env-vars-catalogue
+    fieldref: env.WATCH_NAMESPACE
+  target:
+    objref:
+      kind: Deployment
+      name: metal3-baremetal-operator
+    fieldrefs: ["{.spec.template.spec.containers[?(.name == 'baremetal-operator')].env[?(.name == 'WATCH_NAMESPACE')].value}"]

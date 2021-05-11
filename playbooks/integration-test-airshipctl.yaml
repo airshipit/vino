@@ -14,11 +14,16 @@
     - name:  Set up requirements for kubernetes
       include_role:
         name: clear-firewall
-    - name: Install kubernetes and Deploy Vino
+    - name: Install kubernetes, deploy vino, run test plan
       shell: |
         set -xe;
+        ./tools/deployment/configure-bridges.sh
         ./tools/deployment/install-k8s.sh
-        ./tools/deployment/deploy-vino.sh
-        ./tools/deployment/test-cr.sh
+        ./tools/deployment/install-airship.sh
+        ./tools/deployment/configure-airship.sh
+        make docker-build-controller
+        ./tools/deployment/run-test-plan.sh
       args:
         chdir: "{{ zuul.project.src_dir }}"
+      environment:
+        VINO_REPO_URL: "."

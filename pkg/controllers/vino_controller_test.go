@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	vinov1 "vino/pkg/api/v1"
 )
@@ -18,16 +17,6 @@ func testDS() *appsv1.DaemonSet {
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{}}}}}
-}
-
-func testVINO() *vinov1.Vino {
-	return &vinov1.Vino{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "vino",
-			Namespace: "default",
-		},
-		Spec: vinov1.VinoSpec{
-			Networks: []vinov1.Network{}}}
 }
 
 var _ = Describe("Test Setting Env variables", func() {

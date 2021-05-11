@@ -1,0 +1,27 @@
+configMapGenerator:
+- name: node-labler
+  options:
+    disableNameSuffixHash: true
+  files:
+  - script=node-labler.sh
+- name: check-bmh
+  options:
+    disableNameSuffixHash: true
+  files:
+  - script=check-bmh.sh
+- name: check-daemonset
+  options:
+    disableNameSuffixHash: true
+  files:
+  - script=check-daemonset.sh
+- name: wait-bmh
+  options:
+    disableNameSuffixHash: true
+  files:
+  - script=wait-for-bmh.sh
+- name: delete-vino-cr
+  options:
+    disableNameSuffixHash: true
+  files:
+  - script=delete-vino-cr.sh
+

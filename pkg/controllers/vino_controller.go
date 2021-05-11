@@ -40,6 +40,7 @@ import (
 
 	vinov1 "vino/pkg/api/v1"
 	"vino/pkg/ipam"
+	"vino/pkg/managers"
 )
 
 const (
@@ -198,7 +199,16 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino)
 		return err
 	}
 
-	if err = r.reconcileBMHs(ctx, vino); err != nil {
+	bmhManager := &managers.BMHManager{
+		Namespace: getRuntimeNamespace(),
+		ViNO:      vino,
+		Client:    r.Client,
+		Ipam:      r.Ipam,
+		Logger:    logger,
+	}
+
+	logger.Info("Requesting Virtual Machines from vino-builders")
+	if err := bmhManager.ScheduleVMs(ctx); err != nil {
 		return err
 	}
 
@@ -206,7 +216,12 @@ func (r *VinoReconciler) ensureDaemonSet(ctx context.Context, vino *vinov1.Vino)
 	defer cancel()
 
 	logger.Info("Waiting for daemonset to become ready")
-	return r.waitDaemonSet(waitTimeoutCtx, dsReady, ds)
+	if err := r.waitDaemonSet(waitTimeoutCtx, dsReady, ds); err != nil {
+		return err
+	}
+
+	logger.Info("Creating BaremetalHosts")
+	return bmhManager.CreateBMHs(ctx)
 }
 
 func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.DaemonSet, vino *vinov1.Vino) {
@@ -339,29 +354,29 @@ func (r *VinoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *VinoReconciler) finalize(ctx context.Context, vino *vinov1.Vino) error {
+	bmhManager := &managers.BMHManager{
+		Namespace: getRuntimeNamespace(),
+		ViNO:      vino,
+		Client:    r.Client,
+		Ipam:      r.Ipam,
+		Logger:    logr.FromContext(ctx),
+	}
+	if err := bmhManager.UnScheduleVMs(ctx); err != nil {
+		return err
+	}
+
 	// TODO aggregate errors instead
 	if err := r.Delete(ctx,
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: r.getDaemonSetName(vino), Namespace: getRuntimeNamespace(),
 			},
-		}); err != nil {
+		}); err != nil && !apierror.IsNotFound(err) {
 		return err
 	}
+
 	controllerutil.RemoveFinalizer(vino, vinov1.VinoFinalizer)
 	return r.Update(ctx, vino)
-}
-
-func applyRuntimeObject(ctx context.Context, key client.ObjectKey, obj client.Object, c client.Client) error {
-	getObj := obj
-	err := c.Get(ctx, key, getObj)
-	switch {
-	case apierror.IsNotFound(err):
-		err = c.Create(ctx, obj)
-	case err == nil:
-		err = c.Patch(ctx, obj, client.MergeFrom(getObj))
-	}
-	return err
 }
 
 func getRuntimeNamespace() string {

@@ -1,0 +1,15 @@
+apiVersion: airshipit.org/v1alpha1
+kind: NetworkCatalogue
+metadata:
+  name: networking
+spec:
+  ironic:
+    provisioningIp: "172.3.3.1"
+    dhcpRange: "172.3.3.200,172.3.3.250"
+    ironicAutomatedClean: ""
+    httpPort: ""
+    ironicFastTrack: ""
+    deployKernelUrl: ""
+    deployRamdiskUrl: ""
+    ironicEndpoint: ""
+    ironicInspectorEndpoint: ""

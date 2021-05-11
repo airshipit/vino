@@ -20,8 +20,7 @@ worker_copy_label="airshipit.org/k8s-role=worker"
 # Label all nodes with the same rack/label. We are ok with this for this simple test.
 kubectl label node --overwrite=true --all $server_label $rack_label
 
-
-kubectl apply -f config/samples/vino_cr.yaml
+kubectl apply -f config/samples/vino_cr_4_workers_1_cp.yaml
 kubectl apply -f config/samples/ippool.yaml
 kubectl apply -f config/samples/network-template-secret.yaml
 
@@ -54,19 +53,14 @@ if ! kubectl -n vino-system rollout status ds default-vino-test-cr --timeout=10s
 fi
 
 masterCount=$(kubectl get baremetalhosts -n vino-system -l "$server_label,$server_label,$master_copy_label" -o name | wc -l)
-
 # with this setup set up, exactly 1 master must have been created by VINO controller
-
 [[ "$masterCount" -eq "1" ]]
 
 workerCount=$(kubectl get baremetalhosts -n vino-system -l "$server_label,$server_label,$worker_copy_label" -o name | wc -l)
-
 # with this setup set up, exactly 4 workers must have been created by VINO controller
-
 [[ "$workerCount" -eq "4" ]]
 
 kubectl get baremetalhosts -n vino-system --show-labels=true
 
 kubectl get -o yaml -n vino-system \
-    $(kubectl get secret -o name -n vino-system | grep network-data)
-kubectl get secret -o yaml -n vino-system default-vino-test-cr-credentials
+   $(kubectl get secret -o name -n vino-system | grep network-data)

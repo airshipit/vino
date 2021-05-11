@@ -1,0 +1,16 @@
+---
+apiVersion: airshipit.org/v1alpha1
+kind: PhasePlan
+metadata:
+  name: test-plan
+description: "Runs phases to build iso image"
+phases:
+  - name: deploy-bmo
+  - name: deploy-crds
+  - name: deploy-controller
+  - name: node-labels-rack-server
+  - name: deploy-vino-cr
+  - name: daemonset-readiness
+  - name: bmh-count
+  - name: wait-bmh
+  - name: delete-vino-cr
