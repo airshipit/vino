@@ -183,6 +183,10 @@ spec:
                             type: string
                         type: object
                       type: array
+                    enableVNC:
+                      description: EnableVNC create VNC for graphical interaction
+                        with the VM that will be created.
+                      type: boolean
                     libvirtTemplate:
                       description: NamespacedName to be used to spawn VMs
                       properties:

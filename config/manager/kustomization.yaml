@@ -27,3 +27,13 @@ configMapGenerator:
     disableNameSuffixHash: true
   files:
     - storage-templates.yaml
+- name: libvirt-qemu-conf
+  options:
+    disableNameSuffixHash: true
+  files:
+    - qemu.conf
+- name: create-libvirt-vnc-cert
+  options:
+    disableNameSuffixHash: true
+  files:
+    - create_tls_cert.sh

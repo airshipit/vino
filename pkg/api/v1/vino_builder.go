@@ -40,6 +40,8 @@ type BuilderDomain struct {
 	Name           string `json:"name,omitempty"`
 	Role           string `json:"role,omitempty"`
 	BootMACAddress string `json:"bootMACAddress,omitempty"`
+	EnableVNC      bool   `json:"enableVNC,omitempty"`
+	VNCPassword    string `json:"vncPassword,omitempty"`
 
 	Interfaces []BuilderNetworkInterface `json:"interfaces,omitempty"`
 }
