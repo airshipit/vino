@@ -42,16 +42,12 @@ const (
 )
 
 type networkTemplateValues struct {
-	Node      vinov1.NodeSet // the specific node type to be templated
-	BMHName   string
-	Networks  []vinov1.Network
-	Generated generatedValues // Host-specific values calculated by ViNO: IP, etc
-}
+	BMHName        string
+	BootMACAddress string
 
-type generatedValues struct {
-	IPAddresses   map[string]string
-	MACAddresses  map[string]string
-	BootMACAdress string
+	Node     vinov1.NodeSet // the specific node type to be templated
+	Networks []vinov1.Network
+	vinov1.BuilderDomain
 }
 
 type BMHManager struct {
@@ -184,7 +180,7 @@ func (r *BMHManager) createIpamNetworks(ctx context.Context, vino *vinov1.Vino) 
 }
 
 func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
-	nodeNetworkValues := map[string]generatedValues{}
+	domains := []vinov1.BuilderDomain{}
 
 	k8sNode, err := r.getNode(ctx, pod)
 	if err != nil {
@@ -203,14 +199,17 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 			roleSuffix := fmt.Sprintf("%s-%d", node.Name, i)
 			bmhName := fmt.Sprintf("%s-%s", prefix, roleSuffix)
 
-			domainNetValues, nodeErr := r.domainSpecificNetValues(ctx, bmhName, node, nodeNetworks)
+			domainValues, nodeErr := r.domainSpecificNetValues(ctx, bmhName, node, nodeNetworks)
 			if nodeErr != nil {
 				return nodeErr
 			}
-			// save domain specific generated values to a map
-			nodeNetworkValues[roleSuffix] = domainNetValues.Generated
+			domainValues.Name = roleSuffix
+			domainValues.Role = node.Name
 
-			netData, netDataNs, nodeErr := r.setBMHNetworkSecret(ctx, node, domainNetValues)
+			// Append a specific domain to the list
+			domains = append(domains, domainValues.BuilderDomain)
+
+			netData, netDataNs, nodeErr := r.setBMHNetworkSecret(ctx, node, domainValues)
 			if nodeErr != nil {
 				return nodeErr
 			}
@@ -241,7 +240,7 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 						CredentialsName:                credentialSecretName,
 						DisableCertificateVerification: true,
 					},
-					BootMACAddress: domainNetValues.Generated.BootMACAdress,
+					BootMACAddress: domainValues.BootMACAddress,
 				},
 			}
 			r.bmhList = append(r.bmhList, bmh)
@@ -249,7 +248,16 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 	}
 
 	r.Logger.Info("annotating node", "node", k8sNode.Name)
-	return r.annotateNode(ctx, k8sNode, nodeNetworkValues)
+	vinoBuilder := vinov1.Builder{
+		PXEBootImageHost:                r.ViNO.Spec.PXEBootImageHost,
+		PXEBootImageHostPort:            r.ViNO.Spec.PXEBootImageHostPort,
+		ManagementPhysicalInterfaceName: r.ViNO.Spec.ManagementPhysicalInterfaceName,
+		Networks:                        r.ViNO.Spec.Networks,
+		Nodes:                           r.ViNO.Spec.Nodes,
+		CPUConfiguration:                r.ViNO.Spec.CPUConfiguration,
+		Domains:                         domains,
+	}
+	return r.annotateNode(ctx, k8sNode, vinoBuilder)
 }
 
 // nodeNetworks returns a copy of node network with a unique per node values
@@ -259,6 +267,7 @@ func (r *BMHManager) nodeNetworks(ctx context.Context,
 	for netIndex, network := range globalNetworks {
 		for routeIndex, route := range network.Routes {
 			if route.Gateway == "$vinobridge" {
+				r.Logger.Info("Getting GW bridge IP from node", "node", k8sNode.Name)
 				bridgeIP, err := r.getBridgeIP(ctx, k8sNode)
 				if err != nil {
 					return []vinov1.Network{}, err
@@ -276,8 +285,9 @@ func (r *BMHManager) domainSpecificNetValues(
 	node vinov1.NodeSet,
 	networks []vinov1.Network) (networkTemplateValues, error) {
 	// Allocate an IP for each of this BMH's network interfaces
-	ipAddresses := map[string]string{}
-	macAddresses := map[string]string{}
+
+	domainInterfaces := []vinov1.BuilderNetworkInterface{}
+
 	var bootMAC string
 	for _, iface := range node.NetworkInterfaces {
 		networkName := iface.NetworkName
@@ -303,8 +313,11 @@ func (r *BMHManager) domainSpecificNetValues(
 		if err != nil {
 			return networkTemplateValues{}, err
 		}
-		ipAddresses[networkName] = ipAddress
-		macAddresses[iface.Name] = macAddress
+		domainInterfaces = append(domainInterfaces, vinov1.BuilderNetworkInterface{
+			IPAddress:        ipAddress,
+			MACAddress:       macAddress,
+			NetworkInterface: iface,
+		})
 		if iface.Name == node.BootInterfaceName {
 			bootMAC = macAddress
 		}
@@ -312,40 +325,18 @@ func (r *BMHManager) domainSpecificNetValues(
 			"MAC", macAddress, "IP", ipAddress, "bmh name", bmhName, "bootMAC", bootMAC)
 	}
 	return networkTemplateValues{
-		Node:     node,
-		BMHName:  bmhName,
-		Networks: networks,
-		Generated: generatedValues{
-			IPAddresses:   ipAddresses,
-			MACAddresses:  macAddresses,
-			BootMACAdress: bootMAC,
+		Node:           node,
+		BMHName:        bmhName,
+		Networks:       networks,
+		BootMACAddress: bootMAC,
+		BuilderDomain: vinov1.BuilderDomain{
+			Interfaces: domainInterfaces,
 		},
 	}, nil
 }
 
-func (r *BMHManager) annotateNode(ctx context.Context,
-	k8sNode *corev1.Node,
-	domainInterfaceValues map[string]generatedValues) error {
-	r.Logger.Info("Getting GW bridge IP from node", "node", k8sNode.Name)
-	builderValues := vinov1.Builder{
-		Domains:          make(map[string]vinov1.BuilderDomain),
-		Networks:         r.ViNO.Spec.Networks,
-		Nodes:            r.ViNO.Spec.Nodes,
-		CPUConfiguration: r.ViNO.Spec.CPUConfiguration,
-	}
-	for domainName, domain := range domainInterfaceValues {
-		builderDomain := vinov1.BuilderDomain{
-			Interfaces: make(map[string]vinov1.BuilderNetworkInterface),
-		}
-		for ifName, ifMAC := range domain.MACAddresses {
-			builderDomain.Interfaces[ifName] = vinov1.BuilderNetworkInterface{
-				MACAddress: ifMAC,
-			}
-		}
-		builderValues.Domains[domainName] = builderDomain
-	}
-
-	b, err := yaml.Marshal(builderValues)
+func (r *BMHManager) annotateNode(ctx context.Context, k8sNode *corev1.Node, vinoBuilder vinov1.Builder) error {
+	b, err := yaml.Marshal(vinoBuilder)
 	if err != nil {
 		return err
 	}

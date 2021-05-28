@@ -14,7 +14,7 @@ spec:
   configuration:
     cpuExclude: 0-1
   networks:
-    - name: management
+    - name: vm-infra
       subnet: 192.168.2.0/20
       type: ipv4
       allocationStart: 192.168.2.10
@@ -25,16 +25,6 @@ spec:
           gateway: $vinobridge # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
       dns_servers: ["135.188.34.124"]
       macPrefix: "52:54:00:06:00:00"
-    - name: pxe
-      subnet: 172.3.3.0/24
-      type: ipv4
-      routes:
-        - network: 0.0.0.0
-          netmask: 0.0.0.0
-          gateway: 172.3.3.1
-      allocationStart: 172.3.3.10
-      allocationStop: 172.3.3.199
-      macPrefix: "52:54:00:09:00:00"
   nodes:
     - name: master
       count: 1
@@ -43,15 +33,11 @@ spec:
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
-      bootInterfaceName: pxe
+      bootInterfaceName: management
       networkInterfaces:
-        - name: vm-infra
-          type: bridge
-          network: management
-          mtu: 1500
-        - name: pxe
-          type: bridge
-          network: pxe
+        - name: management
+          type: network
+          network: vm-infra
           mtu: 1500
   bmcCredentials:
     username: admin

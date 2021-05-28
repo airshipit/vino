@@ -16,21 +16,20 @@
   virt_net:
     state: present
     # looks like setting name here is a redundant, the name is anyways taken from the template xml file, but should set it to make virt_pool module happy.
-    name: "{{ item.name }}"
-    xml: "{{ item.libvirtTemplate }}"
+    name: "{{ network.name }}"
+    xml: "{{ network.libvirtTemplate }}"
     uri: "{{ libvirt_uri }}"
-  vars:
-    nodebridgegw: ipam.bridge_ip
+  when: "network.name not in ansible_libvirt_networks"
 
 - name: activate the network
   virt_net:
     state: active
-    name: "{{ item.name }}"
+    name: "{{ network.name }}"
     uri: "{{ libvirt_uri }}"
 
 # these are idempotent so require no conditional checks
 - name: autostart the network
   virt_net:
     autostart: yes
-    name: "{{ item.name }}"
+    name: "{{ network.name }}"
     uri: "{{ libvirt_uri }}"

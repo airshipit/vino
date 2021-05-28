@@ -10,9 +10,11 @@
 # configure networks                     #
 ##########################################
 
-# - name: create network
-#   include_tasks: create-network.yaml
-#   loop: "{{ libvirtNetworks }}"
+- name: create network
+  include_tasks: create-network.yaml
+  loop: "{{ libvirtNetworks }}"
+  loop_control:
+    loop_var: network
 
 ##########################################
 # configure domains                      #
@@ -32,8 +34,8 @@
 
 - name: define domain outer loop
   include_tasks: create-domain.yaml
-  loop: "{{ nodes }}"
+  loop: "{{ domains }}"
   loop_control:
-    loop_var: node
+    loop_var: domain
 
 

@@ -69,6 +69,12 @@ type VinoSpec struct {
 	// NodeLabelKeysToCopy vino controller will get these labels from k8s nodes
 	// and place them on BMHs that correspond to this node
 	NodeLabelKeysToCopy []string `json:"nodeLabelKeysToCopy,omitempty"`
+	// ManagementPhysicalInterfaceName will be used to connect to libvirt network
+	ManagementPhysicalInterfaceName string `json:"managementPhysicalInterfaceName,omitempty"`
+	// PXEBootImageHost will be used to download the PXE boot image
+	PXEBootImageHost string `json:"pxeBootImageHost,omitempty"`
+	// PXEBootImageHostPort will be used to download the PXE boot image
+	PXEBootImageHostPort int `json:"pxeBootImageHostPort,omitempty"`
 }
 
 // BMCCredentials contain credentials that will be used to create BMH nodes

@@ -1,27 +1,26 @@
-- name: debug print loop
-  debug:
-    msg: "outer item={{ node }} inner item={{item}}"
-  loop: "{{ range(0,node.count)|list }}"
-
-- name: debug print virsh xml domain
-  debug:
-    msg: "{{ flavorTemplates[node['bmhLabels']['airshipit.org/k8s-role']]['domainTemplate'] }}"
-  loop: "{{ range(0,node.count)|list }}"
-
 - name: get state of existing volumes
   shell: |
     virsh vol-list vino-default
   register: vol_list
 
+- name: DEBUG domain.interfaces
+  debug:
+    var: domain.interfaces
+
+
+- name: DEBUG domain
+  debug:
+    var: domain
+
 - name: write out domain volume request xml
-  copy: content="{{ flavorTemplates[node['bmhLabels']['airshipit.org/k8s-role']]['volumeTemplate'] }}" dest=/tmp/vol-{{item}}.xml
-  loop: "{{ range(0,node.count)|list }}"
+  copy:
+    content: "{{ flavorTemplates[domain.role]['volumeTemplate'] }}"
+    dest: /tmp/vol-{{ domain.name }}.xml
 
 - name: create domain volume if it doesn't exist
   shell: |
-    virsh vol-create vino-default /tmp/vol-{{item}}.xml
-  loop: "{{ range(0,node.count)|list }}"
-  when: "node.name + '-' + item|string not in vol_list.stdout"
+    virsh vol-create vino-default /tmp/vol-{{ domain.name }}.xml
+  when: "domain.name |string not in vol_list.stdout"
 
 - name: ensure vino instance state directory exists
   file:
@@ -34,14 +33,12 @@
 # the virt community plugin does not handle pushing out updates
 # to domains, so we must shell out here instead
 
-- name: write out domain volume request xml
-  copy: content="{{ flavorTemplates[node['bmhLabels']['airshipit.org/k8s-role']]['domainTemplate'] }}" dest=/tmp/domain-{{item}}.xml
-  loop: "{{ range(0,node.count)|list }}"
+- name: write out domain xml
+  copy: content="{{ flavorTemplates[domain.role]['domainTemplate'] }}" dest=/tmp/{{ domain.name }}.xml
 
 - name: virsh define domain
   shell: |
-    virsh define /tmp/domain-{{item}}.xml
-  loop: "{{ range(0,node.count)|list }}"
+    virsh define /tmp/{{ domain.name }}.xml
 
 #- name: set vm to running
 #  virt:
