@@ -77,6 +77,10 @@ spec:
                   vinoBuilderImage:
                     type: string
                 type: object
+              managementPhysicalInterfaceName:
+                description: ManagementPhysicalInterfaceName will be used to connect
+                  to libvirt network
+                type: string
               networks:
                 description: Define network parameters
                 items:
@@ -214,6 +218,14 @@ spec:
                       type: array
                   type: object
                 type: array
+              pxeBootImageHost:
+                description: PXEBootImageHost will be used to download the PXE boot
+                  image
+                type: string
+              pxeBootImageHostPort:
+                description: PXEBootImageHostPort will be used to download the PXE
+                  boot image
+                type: integer
               vmBridge:
                 description: VMBridge defines the single interface name to be used
                   as a bridge for VMs

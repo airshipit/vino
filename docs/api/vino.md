@@ -127,6 +127,36 @@ string
 </tr>
 <tr>
 <td>
+<code>managementPhysicalInterfaceName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>pxeBootImageHost</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>pxeBootImageHostPort</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>networks</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.Network">
@@ -167,7 +197,7 @@ CPUConfiguration
 <code>domains</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.BuilderDomain">
-map[string]./pkg/api/v1.BuilderDomain
+[]BuilderDomain
 </a>
 </em>
 </td>
@@ -197,10 +227,30 @@ map[string]./pkg/api/v1.BuilderDomain
 <tbody>
 <tr>
 <td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>interfaces</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.BuilderNetworkInterface">
-map[string]./pkg/api/v1.BuilderNetworkInterface
+[]BuilderNetworkInterface
 </a>
 </em>
 </td>
@@ -229,9 +279,31 @@ map[string]./pkg/api/v1.BuilderNetworkInterface
 <tbody>
 <tr>
 <td>
+<code>ipAddress</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>macAddress</code><br>
 <em>
 string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>NetworkInterface</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.NetworkInterface">
+NetworkInterface
+</a>
 </em>
 </td>
 <td>
@@ -812,6 +884,7 @@ The prefix should be specified in full MAC notation, e.g.
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.BuilderNetworkInterface">BuilderNetworkInterface</a>, 
 <a href="#airship.airshipit.org/v1.NodeSet">NodeSet</a>)
 </p>
 <p>NetworkInterface define interface on the VM</p>
@@ -1262,6 +1335,39 @@ sushy tools will use these credentials as well, to set up authentication</p>
 and place them on BMHs that correspond to this node</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>managementPhysicalInterfaceName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ManagementPhysicalInterfaceName will be used to connect to libvirt network</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pxeBootImageHost</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PXEBootImageHost will be used to download the PXE boot image</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pxeBootImageHostPort</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>PXEBootImageHostPort will be used to download the PXE boot image</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1398,6 +1504,39 @@ sushy tools will use these credentials as well, to set up authentication</p>
 <td>
 <p>NodeLabelKeysToCopy vino controller will get these labels from k8s nodes
 and place them on BMHs that correspond to this node</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>managementPhysicalInterfaceName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ManagementPhysicalInterfaceName will be used to connect to libvirt network</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pxeBootImageHost</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PXEBootImageHost will be used to download the PXE boot image</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pxeBootImageHostPort</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>PXEBootImageHostPort will be used to download the PXE boot image</p>
 </td>
 </tr>
 </tbody>
