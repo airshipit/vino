@@ -127,16 +127,6 @@ string
 </tr>
 <tr>
 <td>
-<code>managementPhysicalInterfaceName</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
 <code>pxeBootImageHost</code><br>
 <em>
 string
@@ -238,6 +228,16 @@ string
 <tr>
 <td>
 <code>role</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>bootMACAddress</code><br>
 <em>
 string
 </em>
@@ -1087,14 +1087,14 @@ NamespacedName
 </tr>
 <tr>
 <td>
-<code>bootInterfaceName</code><br>
+<code>rootDeviceName</code><br>
 <em>
 string
 </em>
 </td>
 <td>
-<p>BootInterfaceName references the interface name in the list of NetworkInterfaces
-Vino will take this interface find its mac address and use it as bootMACAddress for BMH</p>
+<p>RootDeviceName is the root device for underlying VM, /dev/vda for example
+default is /dev/vda</p>
 </td>
 </tr>
 </tbody>
@@ -1337,17 +1337,6 @@ and place them on BMHs that correspond to this node</p>
 </tr>
 <tr>
 <td>
-<code>managementPhysicalInterfaceName</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>ManagementPhysicalInterfaceName will be used to connect to libvirt network</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>pxeBootImageHost</code><br>
 <em>
 string
@@ -1504,17 +1493,6 @@ sushy tools will use these credentials as well, to set up authentication</p>
 <td>
 <p>NodeLabelKeysToCopy vino controller will get these labels from k8s nodes
 and place them on BMHs that correspond to this node</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>managementPhysicalInterfaceName</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>ManagementPhysicalInterfaceName will be used to connect to libvirt network</p>
 </td>
 </tr>
 <tr>

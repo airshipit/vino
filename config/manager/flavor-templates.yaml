@@ -70,6 +70,7 @@ flavorTemplates:
 
           <interface type='network'>
             <source network='pxe'/>
+            <mac address='{{ domain.bootMACAddress }}'/>
             <model type='virtio'/>
           </interface>
 

@@ -3,7 +3,7 @@ libvirtNetworks:
     libvirtTemplate: |
       <network>
         <name>pxe</name>
-        <forward mode='route'/>
+        <forward mode='nat'/>
         <bridge name='pxe' stp='off' delay='0'/>
         <ip address='10.153.241.1' netmask='255.255.255.0'>
           <!-- <tftp root='/srv/tftp'/> -->

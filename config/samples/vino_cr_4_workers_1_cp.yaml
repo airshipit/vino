@@ -33,7 +33,6 @@ spec:
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
-      bootInterfaceName: pxe
       networkInterfaces:
         - name: management
           type: network
@@ -46,7 +45,6 @@ spec:
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
-      bootInterfaceName: pxe
       networkInterfaces:
         - name: management
           type: network

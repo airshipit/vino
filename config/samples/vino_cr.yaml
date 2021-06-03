@@ -16,7 +16,7 @@ spec:
   networks:
     - name: vm-infra
       subnet: 192.168.2.0/20
-      type: ipv4
+      type: bridge
       allocationStart: 192.168.2.10
       allocationStop: 192.168.2.14 # docs should specify that the range should = number of vms (to permit future expansion over multiple vino crs etc)
       routes:

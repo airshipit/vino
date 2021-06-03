@@ -18,10 +18,9 @@ package v1
 
 // TODO (kkalynovskyi) create an API object for this, and refactor vino-builder to read it from kubernetes.
 type Builder struct {
-	GWIPBridge                      string `json:"gwIPBridge,omitempty"`
-	ManagementPhysicalInterfaceName string `json:"managementPhysicalInterfaceName,omitempty"`
-	PXEBootImageHost                string `json:"pxeBootImageHost,omitempty"`
-	PXEBootImageHostPort            int    `json:"pxeBootImageHostPort,omitempty"`
+	GWIPBridge           string `json:"gwIPBridge,omitempty"`
+	PXEBootImageHost     string `json:"pxeBootImageHost,omitempty"`
+	PXEBootImageHostPort int    `json:"pxeBootImageHostPort,omitempty"`
 
 	Networks []Network `json:"networks,omitempty"`
 	Nodes    []NodeSet `json:"nodes,omitempty"`
@@ -31,15 +30,16 @@ type Builder struct {
 }
 
 type BuilderNetworkInterface struct {
-	IPAddress  string `json:"ipAddress,omitempty"`
-	MACAddress string `json:"macAddress,omitempty"`
-	NetworkInterface
+	IPAddress        string `json:"ipAddress,omitempty"`
+	MACAddress       string `json:"macAddress,omitempty"`
+	NetworkInterface `json:",inline"`
 }
 
 // BuilderDomain represents a VINO libvirt domain
 type BuilderDomain struct {
-	Name string `json:"name,omitempty"`
-	Role string `json:"role,omitempty"`
+	Name           string `json:"name,omitempty"`
+	Role           string `json:"role,omitempty"`
+	BootMACAddress string `json:"bootMACAddress,omitempty"`
 
 	Interfaces []BuilderNetworkInterface `json:"interfaces,omitempty"`
 }

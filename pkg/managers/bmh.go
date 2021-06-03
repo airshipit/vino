@@ -42,8 +42,7 @@ const (
 )
 
 type networkTemplateValues struct {
-	BMHName        string
-	BootMACAddress string
+	BMHName string
 
 	Node     vinov1.NodeSet // the specific node type to be templated
 	Networks []vinov1.Network
@@ -54,9 +53,10 @@ type BMHManager struct {
 	Namespace string
 
 	client.Client
-	ViNO   *vinov1.Vino
-	Ipam   *ipam.Ipam
-	Logger logr.Logger
+	ViNO        *vinov1.Vino
+	BootNetwork *vinov1.Network
+	Ipam        *ipam.Ipam
+	Logger      logr.Logger
 
 	bmhList           []*metal3.BareMetalHost
 	networkSecrets    []*corev1.Secret
@@ -160,23 +160,43 @@ func (r *BMHManager) requestVMs(ctx context.Context) error {
 }
 
 func (r *BMHManager) createIpamNetworks(ctx context.Context, vino *vinov1.Vino) error {
-	for _, network := range vino.Spec.Networks {
-		subnetRange, err := ipam.NewRange(network.AllocationStart, network.AllocationStop)
-		if err != nil {
-			return err
+	// TODO (kkalynovskyi) these needs to be propagated into network template, and be configurable
+	// TODO (kkalynovskyi) develop generic network templates that would allow to handle all networks
+	// in single generic way.
+	// Bootnetwork needs to be handled spearately because it needs to be created by libvirt
+	// And have different configuration.
+	if r.BootNetwork == nil {
+		r.BootNetwork = &vinov1.Network{
+			SubNet:          "10.153.241.0/24",
+			AllocationStart: "10.153.241.2",
+			AllocationStop:  "10.153.241.254",
+			Name:            "pxe-boot",
+			MACPrefix: "52:54:00:32:00:00",
 		}
-		macPrefix := network.MACPrefix
-		if macPrefix == "" {
-			r.Logger.Info("No MACPrefix provided; using default MACPrefix for network",
-				"default prefix", DefaultMACPrefix, "network name", network.Name)
-			macPrefix = DefaultMACPrefix
-		}
-		err = r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange, macPrefix)
-		if err != nil {
+	}
+	networks := vino.Spec.Networks
+	// Append bootnetwork to be created in IPAM
+	networks = append(networks, *r.BootNetwork)
+	for _, network := range networks {
+		if err := r.createIpamNetwork(ctx, network); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (r *BMHManager) createIpamNetwork(ctx context.Context, network vinov1.Network) error {
+	subnetRange, err := ipam.NewRange(network.AllocationStart, network.AllocationStop)
+	if err != nil {
+		return err
+	}
+	macPrefix := network.MACPrefix
+	if macPrefix == "" {
+		r.Logger.Info("No MACPrefix provided; using default MACPrefix for network",
+			"default prefix", DefaultMACPrefix, "network name", network.Name)
+		macPrefix = DefaultMACPrefix
+	}
+	return r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange, macPrefix)
 }
 
 func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
@@ -223,6 +243,11 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 				labels[label] = value
 			}
 
+			rootDeviceName := node.RootDeviceName
+			if rootDeviceName == "" {
+				rootDeviceName = vinov1.VinoDefaultRootDeviceName
+			}
+
 			credentialSecretName := r.setBMHCredentials(bmhName)
 			bmh := &metal3.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
@@ -241,6 +266,9 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 						DisableCertificateVerification: true,
 					},
 					BootMACAddress: domainValues.BootMACAddress,
+					RootDeviceHints: &metal3.RootDeviceHints{
+						DeviceName: rootDeviceName,
+					},
 				},
 			}
 			r.bmhList = append(r.bmhList, bmh)
@@ -249,13 +277,12 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 
 	r.Logger.Info("annotating node", "node", k8sNode.Name)
 	vinoBuilder := vinov1.Builder{
-		PXEBootImageHost:                r.ViNO.Spec.PXEBootImageHost,
-		PXEBootImageHostPort:            r.ViNO.Spec.PXEBootImageHostPort,
-		ManagementPhysicalInterfaceName: r.ViNO.Spec.ManagementPhysicalInterfaceName,
-		Networks:                        r.ViNO.Spec.Networks,
-		Nodes:                           r.ViNO.Spec.Nodes,
-		CPUConfiguration:                r.ViNO.Spec.CPUConfiguration,
-		Domains:                         domains,
+		PXEBootImageHost:     r.ViNO.Spec.PXEBootImageHost,
+		PXEBootImageHostPort: r.ViNO.Spec.PXEBootImageHostPort,
+		Networks:             r.ViNO.Spec.Networks,
+		Nodes:                r.ViNO.Spec.Nodes,
+		CPUConfiguration:     r.ViNO.Spec.CPUConfiguration,
+		Domains:              domains,
 	}
 	return r.annotateNode(ctx, k8sNode, vinoBuilder)
 }
@@ -287,8 +314,6 @@ func (r *BMHManager) domainSpecificNetValues(
 	// Allocate an IP for each of this BMH's network interfaces
 
 	domainInterfaces := []vinov1.BuilderNetworkInterface{}
-
-	var bootMAC string
 	for _, iface := range node.NetworkInterfaces {
 		networkName := iface.NetworkName
 		subnet := ""
@@ -297,8 +322,7 @@ func (r *BMHManager) domainSpecificNetValues(
 		for _, network := range networks {
 			if network.Name == networkName {
 				subnet = network.SubNet
-				subnetRange, err = ipam.NewRange(network.AllocationStart,
-					network.AllocationStop)
+				subnetRange, err = ipam.NewRange(network.AllocationStart, network.AllocationStop)
 				if err != nil {
 					return networkTemplateValues{}, err
 				}
@@ -318,21 +342,36 @@ func (r *BMHManager) domainSpecificNetValues(
 			MACAddress:       macAddress,
 			NetworkInterface: iface,
 		})
-		if iface.Name == node.BootInterfaceName {
-			bootMAC = macAddress
-		}
+
 		r.Logger.Info("Got MAC and IP for the network and node",
-			"MAC", macAddress, "IP", ipAddress, "bmh name", bmhName, "bootMAC", bootMAC)
+			"MAC", macAddress, "IP", ipAddress, "bmh name", bmhName)
 	}
+	// Handle bootMAC separately
+	bootMAC, err := r.generatePXEBootMAC(ctx, bmhName)
+	if err != nil {
+		return networkTemplateValues{}, err
+	}
+	r.Logger.Info("Got bootMAC address for BMH node", "bmh name", bmhName, "bootMAC", bootMAC)
 	return networkTemplateValues{
-		Node:           node,
-		BMHName:        bmhName,
-		Networks:       networks,
-		BootMACAddress: bootMAC,
+		Node:     node,
+		BMHName:  bmhName,
+		Networks: networks,
 		BuilderDomain: vinov1.BuilderDomain{
-			Interfaces: domainInterfaces,
+			BootMACAddress: bootMAC,
+			Interfaces:     domainInterfaces,
 		},
 	}, nil
+}
+
+func (r *BMHManager) generatePXEBootMAC(ctx context.Context, bmhName string) (string, error) {
+	subnetRange, err := ipam.NewRange(r.BootNetwork.AllocationStart, r.BootNetwork.AllocationStop)
+	if err != nil {
+		return "", err
+	}
+
+	ipAllocatedTo := fmt.Sprintf("%s/%s", bmhName, "pxe-boot")
+	_, mac, err := r.Ipam.AllocateIP(ctx, r.BootNetwork.SubNet, subnetRange, ipAllocatedTo)
+	return mac, err
 }
 
 func (r *BMHManager) annotateNode(ctx context.Context, k8sNode *corev1.Node, vinoBuilder vinov1.Builder) error {

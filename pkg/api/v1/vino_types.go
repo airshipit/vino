@@ -39,6 +39,8 @@ const (
 	VinoNodeNetworkValuesAnnotation = "airshipit.org/vino.network-values"
 	// VinoNetworkDataTemplateDefaultKey expected template key networkdata template secret for vino node
 	VinoNetworkDataTemplateDefaultKey = "template"
+	// VinoDefaultRootDeviceName is default root device for the underlying libvirt VM
+	VinoDefaultRootDeviceName = "/dev/sda"
 )
 
 // Constants for BasicAuth
@@ -69,8 +71,6 @@ type VinoSpec struct {
 	// NodeLabelKeysToCopy vino controller will get these labels from k8s nodes
 	// and place them on BMHs that correspond to this node
 	NodeLabelKeysToCopy []string `json:"nodeLabelKeysToCopy,omitempty"`
-	// ManagementPhysicalInterfaceName will be used to connect to libvirt network
-	ManagementPhysicalInterfaceName string `json:"managementPhysicalInterfaceName,omitempty"`
 	// PXEBootImageHost will be used to download the PXE boot image
 	PXEBootImageHost string `json:"pxeBootImageHost,omitempty"`
 	// PXEBootImageHostPort will be used to download the PXE boot image
@@ -135,9 +135,9 @@ type NodeSet struct {
 	DiskDrives                []DiskDrivesTemplate `json:"diskDrives,omitempty"`
 	// NetworkDataTemplate must have a template key
 	NetworkDataTemplate NamespacedName `json:"networkDataTemplate,omitempty"`
-	// BootInterfaceName references the interface name in the list of NetworkInterfaces
-	// Vino will take this interface find its mac address and use it as bootMACAddress for BMH
-	BootInterfaceName string `json:"bootInterfaceName,omitempty"`
+	// RootDeviceName is the root device for underlying VM, /dev/vda for example
+	// default is /dev/vda
+	RootDeviceName string `json:"rootDeviceName,omitempty"`
 }
 
 // NamespacedName to be used to spawn VMs

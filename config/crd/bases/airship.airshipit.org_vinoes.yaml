@@ -77,10 +77,6 @@ spec:
                   vinoBuilderImage:
                     type: string
                 type: object
-              managementPhysicalInterfaceName:
-                description: ManagementPhysicalInterfaceName will be used to connect
-                  to libvirt network
-                type: string
               networks:
                 description: Define network parameters
                 items:
@@ -151,11 +147,6 @@ spec:
                         that will be created These labels will override keys from
                         k8s node, that are specified in vino.NodeLabelKeysToCopy
                       type: object
-                    bootInterfaceName:
-                      description: BootInterfaceName references the interface name
-                        in the list of NetworkInterfaces Vino will take this interface
-                        find its mac address and use it as bootMACAddress for BMH
-                      type: string
                     count:
                       type: integer
                     diskDrives:
@@ -216,6 +207,10 @@ spec:
                             type: string
                         type: object
                       type: array
+                    rootDeviceName:
+                      description: RootDeviceName is the root device for underlying
+                        VM, /dev/vda for example default is /dev/vda
+                      type: string
                   type: object
                 type: array
               pxeBootImageHost:
