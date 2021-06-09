@@ -23,10 +23,10 @@ type Builder struct {
 	PXEBootImageHostPort int    `json:"pxeBootImageHostPort,omitempty"`
 
 	Networks []Network `json:"networks,omitempty"`
-	Nodes    []NodeSet `json:"nodes,omitempty"`
 	// (TODO) change json tag to cpuConfiguration when vino-builder has these chanages as well
 	CPUConfiguration CPUConfiguration `json:"configuration,omitempty"`
 	Domains          []BuilderDomain  `json:"domains,omitempty"`
+	NodeCount        int              `json:"nodeCount,omitempty"`
 }
 
 type BuilderNetworkInterface struct {

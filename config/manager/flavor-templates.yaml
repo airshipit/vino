@@ -18,7 +18,7 @@ flavorTemplates:
         </memoryBacking>
         {% endif %}
         <vcpu placement="static">{{ flavors.master.vcpus }}</vcpu>
-        {% if node_core_map[domain.name] is defined %}
+        {% if domain.name in node_core_map %}
         # function to produce list of cpus, in same numa (controled by bool), state will need to be tracked via file on hypervisor host. gotpl psudo:
         <cputune>
           <shares>8192</shares>
@@ -68,17 +68,11 @@ flavorTemplates:
             <alias name="ide"/>
           </controller>
 
-          <interface type='network'>
-            <source network='pxe'/>
-            <mac address='{{ domain.bootMACAddress }}'/>
-            <model type='virtio'/>
-          </interface>
-
           # for each interface defined in vino, e.g.
           {% for interface in domain.interfaces %}
-          <interface type='bridge'>
+          <interface type='{{ interface.type }}'>
             <mac address='{{ interface.macAddress }}'/>
-            <source bridge='{{ interface.network }}'/>
+            <source {{ interface.type }}='{{ interface.network }}'/>
             <model type='virtio'/>
           </interface>
           {% endfor %}
@@ -138,7 +132,7 @@ flavorTemplates:
         </memoryBacking>
         {% endif %}
         <vcpu placement="static">{{ flavors.worker.vcpus }}</vcpu>
-        {% if node_core_map[domain.name] is defined %}
+        {% if domain.name in node_core_map %}
         # function to produce list of cpus, in same numa (controled by bool), state will need to be tracked via file on hypervisor host. gotpl psudo:
         <cputune>
           <shares>8192</shares>

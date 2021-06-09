@@ -96,40 +96,39 @@ def allocate_cores(nodes, flavors, exclude_cpu):
     # address the case where previous != desired - delete previous, re-run
     for node in nodes:
 
-        flavor = node['bmhLabels']['airshipit.org/k8s-role']
+        flavor = node["role"]
         vcpus = flavors[flavor]['vcpus']
 
-        for num_node in range(0, node['count']):
 
-            # generate a unique name such as master-0, master-1
-            node_name = node['name'] + '-' + str(num_node)
+        # generate a unique name such as master-0, master-1
+        node_name = node["name"]
 
-            # extract the core count
-            core_count = int(vcpus)
+        # extract the core count
+        core_count = int(vcpus)
 
-            # discover any previous allocation
-            if 'assignments' in core_state:
-                if node_name in core_state['assignments']:
-                    if len(core_state['assignments'][node_name]) == core_count:
-                        continue
-                    else:
-                        # TODO: support releasing the cores and adding them back
-                        # to available
-                        raise Exception("Existing assignment exists for node %s but does not match current core count needed" % node_name)
-
-            # allocate the cores
-            allocated=False
-            for numa in core_state['available']:
-                if core_count <= len(core_state['available'][numa]):
-                    allocated=True
-                    cores_to_use = core_state['available'][numa][:core_count]
-                    core_state['assignments'][node_name] = cores_to_use
-                    core_state['available'][numa] = core_state['available'][numa][core_count:]
-                    break
-                else:
+        # discover any previous allocation
+        if 'assignments' in core_state:
+            if node_name in core_state['assignments']:
+                if len(core_state['assignments'][node_name]) == core_count:
                     continue
-            if not allocated:
-                raise Exception("Unable to find sufficient cores (%s) for node %s (available was %r)" % (core_count, node_name, core_state['available']))
+                else:
+                    # TODO: support releasing the cores and adding them back
+                    # to available
+                    raise Exception("Existing assignment exists for node %s but does not match current core count needed" % node_name)
+
+        # allocate the cores
+        allocated=False
+        for numa in core_state['available']:
+            if core_count <= len(core_state['available'][numa]):
+                allocated=True
+                cores_to_use = core_state['available'][numa][:core_count]
+                core_state['assignments'][node_name] = cores_to_use
+                core_state['available'][numa] = core_state['available'][numa][core_count:]
+                break
+            else:
+                continue
+        if not allocated:
+            raise Exception("Unable to find sufficient cores (%s) for node %s (available was %r)" % (core_count, node_name, core_state['available']))
 
     # return a dict of nodes: cores
     # or error if insufficient

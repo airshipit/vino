@@ -101,6 +101,7 @@ type Network struct {
 	//Network Parameter defined
 	Name            string     `json:"name,omitempty"`
 	SubNet          string     `json:"subnet,omitempty"`
+	InstanceSubnet  string     `json:"instanceSubnet,omitempty"`
 	Type            string     `json:"type,omitempty"`
 	AllocationStart string     `json:"allocationStart,omitempty"`
 	AllocationStop  string     `json:"allocationStop,omitempty"`
@@ -113,6 +114,10 @@ type Network struct {
 	// The prefix should be specified in full MAC notation, e.g.
 	// 06:42:42:00:00:00
 	MACPrefix string `json:"macPrefix,omitempty"`
+	// PhysicalInterface identifies interface into which to plug in libvirt network
+	PhysicalInterface string `json:"physicalInterface,omitempty"`
+	// LibvirtTemplate identifies which libvirt template to be used to create a network
+	LibvirtTemplate string `json:"libvirtTemplate,omitempty"`
 }
 
 // VMRoutes defined
@@ -138,6 +143,8 @@ type NodeSet struct {
 	// RootDeviceName is the root device for underlying VM, /dev/vda for example
 	// default is /dev/vda
 	RootDeviceName string `json:"rootDeviceName,omitempty"`
+	// BootInterfaceName interface name to use to boot virtual machines
+	BootInterfaceName string `json:"bootInterfaceName,omitempty"`
 }
 
 // NamespacedName to be used to spawn VMs

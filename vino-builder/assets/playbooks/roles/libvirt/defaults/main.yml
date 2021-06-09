@@ -1,1 +1,2 @@
 libvirt_uri: qemu:///system
+node_core_map: {}

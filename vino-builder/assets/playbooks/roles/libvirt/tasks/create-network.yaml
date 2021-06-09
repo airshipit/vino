@@ -17,7 +17,7 @@
     state: present
     # looks like setting name here is a redundant, the name is anyways taken from the template xml file, but should set it to make virt_pool module happy.
     name: "{{ network.name }}"
-    xml: "{{ network.libvirtTemplate }}"
+    xml: "{{ libvirtNetworks[network.libvirtTemplate].libvirtTemplate }}"
     uri: "{{ libvirt_uri }}"
   when: "network.name not in ansible_libvirt_networks"
 

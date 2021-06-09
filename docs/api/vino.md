@@ -159,18 +159,6 @@ int
 </tr>
 <tr>
 <td>
-<code>nodes</code><br>
-<em>
-<a href="#airship.airshipit.org/v1.NodeSet">
-[]NodeSet
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
 <code>configuration</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.CPUConfiguration">
@@ -189,6 +177,16 @@ CPUConfiguration
 <a href="#airship.airshipit.org/v1.BuilderDomain">
 []BuilderDomain
 </a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeCount</code><br>
+<em>
+int
 </em>
 </td>
 <td>
@@ -307,6 +305,9 @@ NetworkInterface
 </em>
 </td>
 <td>
+<p>
+(Members of <code>NetworkInterface</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
@@ -810,6 +811,16 @@ string
 </tr>
 <tr>
 <td>
+<code>instanceSubnet</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>type</code><br>
 <em>
 string
@@ -874,6 +885,28 @@ allocated sequentially to VMs in this network.
 If omitted, a default private MAC prefix will be used.
 The prefix should be specified in full MAC notation, e.g.
 06:42:42:00:00:00</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>physicalInterface</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PhysicalInterface identifies interface into which to plug in libvirt network</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>libvirtTemplate</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LibvirtTemplate identifies which libvirt template to be used to create a network</p>
 </td>
 </tr>
 </tbody>
@@ -989,7 +1022,6 @@ map[string]string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#airship.airshipit.org/v1.Builder">Builder</a>, 
 <a href="#airship.airshipit.org/v1.VinoSpec">VinoSpec</a>)
 </p>
 <p>NodeSet node definitions</p>
@@ -1095,6 +1127,17 @@ string
 <td>
 <p>RootDeviceName is the root device for underlying VM, /dev/vda for example
 default is /dev/vda</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bootInterfaceName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BootInterfaceName interface name to use to boot virtual machines</p>
 </td>
 </tr>
 </tbody>

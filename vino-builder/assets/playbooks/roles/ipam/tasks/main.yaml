@@ -1,0 +1,38 @@
+
+ ##################################################
+  # REMOVE ONCE OPERATOR IS SUPPLYING THIS DATA   ##
+  ##################################################
+  - name: initialize ipam
+    set_fact:
+      ipam: {}
+  # get the subnet in yaml - the network named 'management'
+  # is special
+
+  - name: discover management subnet from network definitions
+    set_fact:
+      management_subnet: "{{ item }}"
+    when: item.name == 'management'
+    loop: "{{ networks }}"
+
+  - name: print value of management subnet
+    debug:
+      msg: "Value of management subnet is {{ management_subnet }}"
+  # get our ip from admin interface which is always our default route
+
+  - name: discover assigned address of this machines management interface
+    set_fact:
+      primary_ip: "{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}"
+
+  - name: ipam allocation
+    ipam:
+      nodes: "{{ domains }}"
+      primary_ipaddress: "{{ primary_ip }}"
+      physical_node_count: "{{ nodeCount | int }}"
+      subnet_bridge: "{{ management_subnet.subnet }}"
+      subnet_instances: "{{ management_subnet.instanceSubnet }}"
+    register: ipam
+    when: domains
+
+  - name: debug ipam result
+    debug:
+      msg: "IPAM Result {{ ipam }}"

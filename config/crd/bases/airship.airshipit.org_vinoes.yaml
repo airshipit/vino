@@ -90,6 +90,12 @@ spec:
                       items:
                         type: string
                       type: array
+                    instanceSubnet:
+                      type: string
+                    libvirtTemplate:
+                      description: LibvirtTemplate identifies which libvirt template
+                        to be used to create a network
+                      type: string
                     macPrefix:
                       description: MACPrefix defines the zero-padded MAC prefix to
                         use for VM mac addresses, and is the first address that will
@@ -99,6 +105,10 @@ spec:
                       type: string
                     name:
                       description: Network Parameter defined
+                      type: string
+                    physicalInterface:
+                      description: PhysicalInterface identifies interface into which
+                        to plug in libvirt network
                       type: string
                     routes:
                       items:
@@ -147,6 +157,10 @@ spec:
                         that will be created These labels will override keys from
                         k8s node, that are specified in vino.NodeLabelKeysToCopy
                       type: object
+                    bootInterfaceName:
+                      description: BootInterfaceName interface name to use to boot
+                        virtual machines
+                      type: string
                     count:
                       type: integer
                     diskDrives:

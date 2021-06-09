@@ -4,7 +4,7 @@ metadata:
   name: vino-test-cr
   labels: {}
 spec:
-  vmBridge: vm-infra
+  vmBridge: vm-infra-bridge
   nodeLabelKeysToCopy:
     - "airshipit.org/server"
     - "airshipit.org/rack"
@@ -14,8 +14,10 @@ spec:
   configuration:
     cpuExclude: 0-1
   networks:
-    - name: vm-infra
+    - name: management
+      libvirtTemplate: management
       subnet: 192.168.2.0/20
+      instanceSubnet: 192.168.2.0/22
       type: ipv4
       allocationStart: 192.168.2.10
       allocationStop: 192.168.2.14 # docs should specify that the range should = number of vms (to permit future expansion over multiple vino crs etc)
@@ -25,6 +27,7 @@ spec:
           gateway: $vinobridge # vino will need to populate this from the nodelabel value `airshipit.org/vino.nodebridgegw`
       dns_servers: ["135.188.34.124"]
       macPrefix: "52:54:00:06:00:00"
+      physicalInterface: enp3s7
   nodes:
     - name: master
       count: 1
@@ -33,10 +36,11 @@ spec:
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
+      bootInterfaceName: management
       networkInterfaces:
         - name: management
           type: network
-          network: vm-infra
+          network: management
           mtu: 1500
     - name: worker
       count: 4
@@ -45,10 +49,11 @@ spec:
       networkDataTemplate:
         name: "test-template"
         namespace: "default"
+      bootInterfaceName: management
       networkInterfaces:
         - name: management
           type: network
-          network: vm-infra
+          network: management
           mtu: 1500
   bmcCredentials:
     username: admin
