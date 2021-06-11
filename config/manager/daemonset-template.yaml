@@ -15,6 +15,18 @@ spec:
       hostNetwork: true
       hostPID: true
       hostIPC: true
+      initContainers:
+        - name: create-libvirt-vnc-certs
+          image: quay.io/airshipit/gnu-tls:latest-minideb
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/local/bin/create_tls_cert.sh"]
+          args: [ "/etc/pki/libvirt-vnc"]
+          volumeMounts:
+            - name: etc-pki-libvirt-vnc
+              mountPath: "/etc/pki/libvirt-vnc"
+            - name: usr-local-bin
+              mountPath: "/usr/local/bin"
+
       containers:
         - name: libvirt
           command:
@@ -51,6 +63,11 @@ spec:
               mountPath: /etc/libvirt/storage
             - name: var-lib-vino
               mountPath: /var/lib/vino
+            - name: etc-libvirt
+              mountPath: /etc/libvirt
+            - name: etc-pki-libvirt-vnc
+              mountPath: /etc/pki/libvirt-vnc
+
         - name: sushy
           image: quay.io/metal3-io/sushy-tools
           imagePullPolicy: IfNotPresent
@@ -208,3 +225,14 @@ spec:
           hostPath:
             path: /var/lib/vino
             type: DirectoryOrCreate
+        - name: etc-libvirt
+          configMap:
+            name: vino-libvirt-qemu-conf
+            defaultMode: 0555
+        - name: etc-pki-libvirt-vnc
+          hostPath:
+            path: /etc/pki/libvirt-vnc
+        - name: usr-local-bin
+          configMap:
+            name: vino-create-libvirt-vnc-cert
+            defaultMode: 0777

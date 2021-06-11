@@ -42,6 +42,7 @@ spec:
           type: network
           network: management
           mtu: 1500
+      enableVNC: true
     - name: worker
       count: 4
       bmhLabels:

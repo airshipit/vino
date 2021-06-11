@@ -87,8 +87,8 @@ flavorTemplates:
             <target type='serial'/>
           </console>
 
-          {% if domain.enable_vnc | default(false) %}
-          <graphics type='vnc' autoport='yes' listen='0.0.0.0'>
+          {% if domain.enableVNC | default(false) %}
+          <graphics type='vnc' autoport='yes' passwd='{{ domain.vncPassword }}' listen='0.0.0.0'>
             <listen type='address' address='0.0.0.0'/>
           </graphics>
           {% endif %}
@@ -206,7 +206,7 @@ flavorTemplates:
             <target type='serial'/>
           </console>
 
-          {% if domain.enable_vnc | default(false) %}
+          {% if domain.enableVNC | default(false) %}
           <graphics type='vnc' autoport='yes' listen='0.0.0.0'>
             <listen type='address' address='0.0.0.0'/>
           </graphics>

@@ -145,6 +145,8 @@ type NodeSet struct {
 	RootDeviceName string `json:"rootDeviceName,omitempty"`
 	// BootInterfaceName interface name to use to boot virtual machines
 	BootInterfaceName string `json:"bootInterfaceName,omitempty"`
+	// EnableVNC create VNC for graphical interaction with the VM that will be created.
+	EnableVNC bool `json:"enableVNC,omitempty"`
 }
 
 // NamespacedName to be used to spawn VMs

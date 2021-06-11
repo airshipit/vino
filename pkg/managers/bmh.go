@@ -208,6 +208,8 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 			}
 			domainValues.Name = roleSuffix
 			domainValues.Role = node.Name
+			domainValues.EnableVNC = node.EnableVNC
+			domainValues.VNCPassword = r.ViNO.Spec.BMCCredentials.Password
 
 			// Append a specific domain to the list
 			domains = append(domains, domainValues.BuilderDomain)

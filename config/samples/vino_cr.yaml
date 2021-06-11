@@ -38,6 +38,7 @@ spec:
           type: network
           network: management
           mtu: 1500
+      enableVNC: true
   bmcCredentials:
     username: admin
     password: passw0rd
