@@ -33,3 +33,9 @@
     autostart: yes
     name: "{{ network.name }}"
     uri: "{{ libvirt_uri }}"
+
+# these are idempotent so require no conditional checks
+- name: plug network into physical interface
+  shell: |
+    brctl addif vm-infra-bridge "{{ network.physicalInterface }}"
+  when: "network.physicalInterface is defined"

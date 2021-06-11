@@ -40,7 +40,7 @@ const (
 	// VinoNetworkDataTemplateDefaultKey expected template key networkdata template secret for vino node
 	VinoNetworkDataTemplateDefaultKey = "template"
 	// VinoDefaultRootDeviceName is default root device for the underlying libvirt VM
-	VinoDefaultRootDeviceName = "/dev/sda"
+	VinoDefaultRootDeviceName = "/dev/vda"
 )
 
 // Constants for BasicAuth

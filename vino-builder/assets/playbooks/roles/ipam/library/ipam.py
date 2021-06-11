@@ -13,16 +13,12 @@
 # generate_baremetal_macs method ripped from
 # openstack/tripleo-incubator/scripts/configure-vm
 
-import math
-import random
-import sys
-import fnmatch
-import os
 import socket
 import struct
 from itertools import chain
-import json
 import netaddr
+
+
 DOCUMENTATION = '''
 ---
 module: ipam
