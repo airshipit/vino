@@ -287,6 +287,16 @@ string
 </tr>
 <tr>
 <td>
+<code>netMask</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>macAddress</code><br>
 <em>
 string

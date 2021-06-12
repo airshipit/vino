@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"text/template"
 	"time"
 
@@ -322,10 +323,15 @@ func (r *BMHManager) domainSpecificNetValues(
 		if err != nil {
 			return networkTemplateValues{}, err
 		}
+		netmask, err := convertNetmask(subnet)
+		if err != nil {
+			return networkTemplateValues{}, err
+		}
 		domainInterfaces = append(domainInterfaces, vinov1.BuilderNetworkInterface{
 			IPAddress:        ipAddress,
 			MACAddress:       macAddress,
 			NetworkInterface: iface,
+			NetMask:          netmask,
 		})
 
 		r.Logger.Info("Got MAC and IP for the network and node",
@@ -506,4 +512,18 @@ func applyRuntimeObject(ctx context.Context, key client.ObjectKey, obj client.Ob
 		err = c.Patch(ctx, obj, client.MergeFrom(getObj))
 	}
 	return err
+}
+
+func convertNetmask(subnet string) (string, error) {
+	_, network, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return "", err
+	}
+
+	m := network.Mask
+	if len(m) != 4 {
+		return "", fmt.Errorf("Couldn't parse netmask for subnet %s", subnet)
+	}
+
+	return fmt.Sprintf("%d.%d.%d.%d", m[0], m[1], m[2], m[3]), nil
 }

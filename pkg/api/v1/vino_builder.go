@@ -31,6 +31,7 @@ type Builder struct {
 
 type BuilderNetworkInterface struct {
 	IPAddress        string `json:"ipAddress,omitempty"`
+	NetMask          string `json:"netMask,omitempty"`
 	MACAddress       string `json:"macAddress,omitempty"`
 	NetworkInterface `json:",inline"`
 }
