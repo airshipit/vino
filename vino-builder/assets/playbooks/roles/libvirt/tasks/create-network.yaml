@@ -39,3 +39,4 @@
   shell: |
     brctl addif vm-infra-bridge "{{ network.physicalInterface }}"
   when: "network.physicalInterface is defined"
+  ignore_errors: True

@@ -141,7 +141,7 @@ func (r *BMHManager) requestVMs(ctx context.Context) error {
 	}
 
 	r.Logger.Info("Vino daemonset pod count", "count", len(podList.Items))
-
+	physicalNodeCount := len(podList.Items)
 	for _, pod := range podList.Items {
 		r.Logger.Info("Creating baremetal hosts for pod",
 			"pod name",
@@ -151,7 +151,7 @@ func (r *BMHManager) requestVMs(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		err = r.setBMHs(ctx, pod)
+		err = r.setBMHs(ctx, pod, physicalNodeCount)
 		if err != nil {
 			return err
 		}
@@ -182,7 +182,7 @@ func (r *BMHManager) createIpamNetwork(ctx context.Context, network vinov1.Netwo
 	return r.Ipam.AddSubnetRange(ctx, network.SubNet, subnetRange, macPrefix)
 }
 
-func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
+func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod, nodeCount int) error {
 	domains := []vinov1.BuilderDomain{}
 
 	k8sNode, err := r.getNode(ctx, pod)
@@ -265,7 +265,7 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod) error {
 		Networks:             r.ViNO.Spec.Networks,
 		CPUConfiguration:     r.ViNO.Spec.CPUConfiguration,
 		Domains:              domains,
-		NodeCount:            len(r.ViNO.Spec.Nodes),
+		NodeCount:            nodeCount,
 	}
 	return r.annotateNode(ctx, k8sNode, vinoBuilder)
 }
