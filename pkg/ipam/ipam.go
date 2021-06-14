@@ -17,6 +17,7 @@ package ipam
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 	"strings"
@@ -377,4 +378,101 @@ func (i *Ipam) getIPPools(ctx context.Context) (map[string]*vinov1.IPPoolSpec, e
 		ippools[ippool.Spec.Subnet] = ippool.Spec.DeepCopy()
 	}
 	return ippools, nil
+}
+
+func (i *Ipam) AllocateRange(ctx context.Context,
+	bitStep int,
+	host, macPrefix, start, stop, subnet string) (vinov1.Range, error) {
+	ipPool, err := i.getIPPoolWithRanges(ctx, bitStep, macPrefix, start, stop, subnet)
+	if err != nil {
+		return vinov1.Range{}, err
+	}
+
+	result, err := chooseRange(host, ipPool)
+	if err != nil {
+		return vinov1.Range{}, err
+	}
+	return result, i.applyIPPool(ctx, *ipPool)
+}
+
+func chooseRange(host string, ipPool *vinov1.IPPoolSpec) (vinov1.Range, error) {
+	const unallocated = -1
+	freeIndex := unallocated
+	for i, r := range ipPool.AllocatedRanges {
+		if r.AllocatedTo == host {
+			return r.Range, nil
+		} else if r.AllocatedTo == "" && freeIndex == unallocated {
+			freeIndex = i
+		}
+	}
+	if freeIndex != unallocated {
+		ipPool.AllocatedRanges[freeIndex].AllocatedTo = host
+	} else {
+		return vinov1.Range{}, fmt.Errorf("No free ranges available for host %s", host)
+	}
+	return ipPool.AllocatedRanges[freeIndex].Range, nil
+}
+
+func (i *Ipam) getIPPoolWithRanges(ctx context.Context, bitStep int,
+	macPrefix, start, stop, subnet string) (*vinov1.IPPoolSpec, error) {
+	ippools, err := i.getIPPools(ctx)
+	if err != nil {
+		return &vinov1.IPPoolSpec{}, err
+	}
+	logger := i.Log.WithValues("subnet", subnet)
+
+	ippool, exists := ippools[subnet]
+	if !exists {
+		logger.Info("IPAM creating subnet")
+		_, err = macStringToInt(macPrefix) // mac format validation
+		if err != nil {
+			return &vinov1.IPPoolSpec{}, err
+		}
+		ippool = &vinov1.IPPoolSpec{
+			Subnet:       subnet,
+			Ranges:       []vinov1.Range{},
+			AllocatedIPs: []vinov1.AllocatedIP{},
+			MACPrefix:    macPrefix,
+			NextMAC:      macPrefix,
+		}
+		ippools[subnet] = ippool
+	}
+	if len(ippool.AllocatedRanges) != 0 {
+		return ippool, nil
+	}
+
+	ranges, err := generateRanges(start, stop, bitStep)
+	if err != nil {
+		return nil, err
+	}
+	ippool.AllocatedRanges = ranges
+	return ippool, nil
+}
+
+func generateRanges(start, stop string, bitStep int) ([]vinov1.AllocatedRange, error) {
+	firstNetIPInt, err := ipStringToInt(start)
+	if err != nil {
+		return nil, err
+	}
+
+	// support only IPv4, use 32 netmask
+	subnetEnd, err := ipStringToInt(stop)
+	if err != nil {
+		return nil, err
+	}
+	ranges := []vinov1.AllocatedRange{}
+	shift := uint64(math.Pow(2, float64(bitStep)))
+
+	for start, end := firstNetIPInt, firstNetIPInt+shift; end-1 <= subnetEnd; {
+		fmt.Printf("start is %s, end is %s\n", intToIPv4String(start), intToIPv4String(subnetEnd))
+		ranges = append(ranges, vinov1.AllocatedRange{
+			Range: vinov1.Range{
+				Start: intToIPv4String(start),
+				Stop:  intToIPv4String(end - 1),
+			},
+		})
+		start += shift
+		end += shift
+	}
+	return ranges, nil
 }

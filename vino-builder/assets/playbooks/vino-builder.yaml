@@ -40,11 +40,6 @@
   tasks:
 
   # generate libvirt definitions for storage, networks, and domains
-  - name: generate management network ip addresses
-    include_role:
-      name: ipam
-
-  # generate libvirt definitions for storage, networks, and domains
   - name: process libvirt definitions
     include_role:
       name: libvirt

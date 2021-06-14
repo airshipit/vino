@@ -82,20 +82,24 @@ spec:
                 items:
                   description: Network defines libvirt networks
                   properties:
-                    allocationStart:
-                      type: string
-                    allocationStop:
-                      type: string
                     bridgeName:
                       description: BridgeName is the name of the bridge to be created
                         as libvirt network. works if AllocateNodeIP is sepcified
+                      type: string
+                    dhcpAllocationStart:
+                      description: DHCPAllocationStart must be inside the SubNet range
+                      type: string
+                    dhcpAllocationStop:
+                      description: DHCPAllocationStop must be inside the SubNet range
                       type: string
                     dns_servers:
                       items:
                         type: string
                       type: array
-                    instanceSubnet:
-                      type: string
+                    instanceSubnetBitStep:
+                      description: InstanceSubnetBitStep indicates how many bites
+                        to allocate for each node DHCP range
+                      type: integer
                     libvirtTemplate:
                       description: LibvirtTemplate identifies which libvirt template
                         to be used to create a network
@@ -126,6 +130,10 @@ spec:
                             type: string
                         type: object
                       type: array
+                    staticAllocationStart:
+                      type: string
+                    staticAllocationStop:
+                      type: string
                     subnet:
                       type: string
                     type:

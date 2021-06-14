@@ -169,7 +169,7 @@ func (r *BMHManager) createIpamNetworks(ctx context.Context, vino *vinov1.Vino) 
 }
 
 func (r *BMHManager) createIpamNetwork(ctx context.Context, network vinov1.Network) error {
-	subnetRange, err := ipam.NewRange(network.AllocationStart, network.AllocationStop)
+	subnetRange, err := ipam.NewRange(network.StaticAllocationStart, network.StaticAllocationStop)
 	if err != nil {
 		return err
 	}
@@ -295,6 +295,21 @@ func (r *BMHManager) nodeNetworks(ctx context.Context,
 				builderNetwork.Network.Routes[routeIndex].Gateway = bridgeIP
 			}
 		}
+		bitStep := network.InstanceSubnetBitStep
+		if bitStep == 0 {
+			bitStep = vinov1.VinoDefaultInstanceSubnetBitStep
+		}
+		r, err := r.Ipam.AllocateRange(ctx,
+			bitStep,
+			k8sNode.Name,
+			network.MACPrefix,
+			network.DHCPAllocationStart,
+			network.DHCPAllocationStop,
+			network.SubNet)
+		if err != nil {
+			return []vinov1.BuilderNetwork{}, err
+		}
+		builderNetwork.Range = r
 		builderNetworks = append(builderNetworks, builderNetwork)
 	}
 	return builderNetworks, nil
@@ -316,7 +331,7 @@ func (r *BMHManager) domainSpecificNetValues(
 		for _, network := range networks {
 			if network.Name == networkName {
 				subnet = network.SubNet
-				subnetRange, err = ipam.NewRange(network.AllocationStart, network.AllocationStop)
+				subnetRange, err = ipam.NewRange(network.StaticAllocationStart, network.StaticAllocationStop)
 				if err != nil {
 					return networkTemplateValues{}, err
 				}
@@ -381,7 +396,7 @@ func (r *BMHManager) annotateNode(ctx context.Context, k8sNode *corev1.Node, vin
 func (r *BMHManager) getBridgeIPandMAC(ctx context.Context,
 	network vinov1.Network,
 	k8sNode *corev1.Node) (string, string, error) {
-	subnetRange, err := ipam.NewRange(network.AllocationStart, network.AllocationStop)
+	subnetRange, err := ipam.NewRange(network.StaticAllocationStart, network.StaticAllocationStop)
 	if err != nil {
 		return "", "", err
 	}

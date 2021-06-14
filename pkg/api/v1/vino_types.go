@@ -41,6 +41,8 @@ const (
 	VinoNetworkDataTemplateDefaultKey = "template"
 	// VinoDefaultRootDeviceName is default root device for the underlying libvirt VM
 	VinoDefaultRootDeviceName = "/dev/vda"
+	// VinoDefaultInstanceSubnetBitStep is the value for InstanceSubnetBitStep
+	VinoDefaultInstanceSubnetBitStep = 4
 )
 
 // Constants for BasicAuth
@@ -97,14 +99,19 @@ type CPUConfiguration struct {
 // Network defines libvirt networks
 type Network struct {
 	//Network Parameter defined
-	Name            string     `json:"name,omitempty"`
-	SubNet          string     `json:"subnet,omitempty"`
-	InstanceSubnet  string     `json:"instanceSubnet,omitempty"`
-	Type            string     `json:"type,omitempty"`
-	AllocationStart string     `json:"allocationStart,omitempty"`
-	AllocationStop  string     `json:"allocationStop,omitempty"`
-	DNSServers      []string   `json:"dns_servers,omitempty"`
-	Routes          []VMRoutes `json:"routes,omitempty"`
+	Name   string `json:"name,omitempty"`
+	SubNet string `json:"subnet,omitempty"`
+	// DHCPAllocationStart must be inside the SubNet range
+	DHCPAllocationStart string `json:"dhcpAllocationStart,omitempty"`
+	// DHCPAllocationStop must be inside the SubNet range
+	DHCPAllocationStop string `json:"dhcpAllocationStop,omitempty"`
+	// InstanceSubnetBitStep indicates how many bites to allocate for each node DHCP range
+	InstanceSubnetBitStep int        `json:"instanceSubnetBitStep,omitempty"`
+	Type                  string     `json:"type,omitempty"`
+	StaticAllocationStart string     `json:"staticAllocationStart,omitempty"`
+	StaticAllocationStop  string     `json:"staticAllocationStop,omitempty"`
+	DNSServers            []string   `json:"dns_servers,omitempty"`
+	Routes                []VMRoutes `json:"routes,omitempty"`
 	// MACPrefix defines the zero-padded MAC prefix to use for
 	// VM mac addresses, and is the first address that will be
 	// allocated sequentially to VMs in this network.

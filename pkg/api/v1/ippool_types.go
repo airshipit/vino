@@ -26,9 +26,10 @@ import (
 // within the subnet from which IPs can be allocated by IPAM,
 // and a set of IPs that are currently allocated already.
 type IPPoolSpec struct {
-	Subnet       string        `json:"subnet"`
-	Ranges       []Range       `json:"ranges"`
-	AllocatedIPs []AllocatedIP `json:"allocatedIPs"`
+	Subnet          string           `json:"subnet"`
+	Ranges          []Range          `json:"ranges"`
+	AllocatedRanges []AllocatedRange `json:"allocatedRanges,omitempty"`
+	AllocatedIPs    []AllocatedIP    `json:"allocatedIPs"`
 	// MACPrefix defines the MAC prefix to use for VM mac addresses
 	MACPrefix string `json:"macPrefix"`
 	// NextMAC indicates the next MAC address (in sequence) that
@@ -41,6 +42,11 @@ type AllocatedIP struct {
 	IP          string `json:"ip"`
 	MAC         string `json:"mac"`
 	AllocatedTo string `json:"allocatedTo"`
+}
+
+type AllocatedRange struct {
+	AllocatedTo string `json:"allocatedTo"`
+	Range       `json:",inline"`
 }
 
 // Range has (inclusive) bounds within a subnet from which IPs can be allocated

@@ -60,6 +60,51 @@ string
 </table>
 </div>
 </div>
+<h3 id="airship.airshipit.org/v1.AllocatedRange">AllocatedRange
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.IPPoolSpec">IPPoolSpec</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>allocatedTo</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>Range</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.Range">
+Range
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>Range</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="airship.airshipit.org/v1.BMCCredentials">BMCCredentials
 </h3>
 <p>
@@ -685,6 +730,18 @@ string
 </tr>
 <tr>
 <td>
+<code>allocatedRanges</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.AllocatedRange">
+[]AllocatedRange
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>allocatedIPs</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.AllocatedIP">
@@ -773,6 +830,18 @@ string
 <em>
 <a href="#airship.airshipit.org/v1.Range">
 []Range
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>allocatedRanges</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.AllocatedRange">
+[]AllocatedRange
 </a>
 </em>
 </td>
@@ -908,12 +977,35 @@ string
 </tr>
 <tr>
 <td>
-<code>instanceSubnet</code><br>
+<code>dhcpAllocationStart</code><br>
 <em>
 string
 </em>
 </td>
 <td>
+<p>DHCPAllocationStart must be inside the SubNet range</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dhcpAllocationStop</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DHCPAllocationStop must be inside the SubNet range</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceSubnetBitStep</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>InstanceSubnetBitStep indicates how many bites to allocate for each node DHCP range</p>
 </td>
 </tr>
 <tr>
@@ -928,7 +1020,7 @@ string
 </tr>
 <tr>
 <td>
-<code>allocationStart</code><br>
+<code>staticAllocationStart</code><br>
 <em>
 string
 </em>
@@ -938,7 +1030,7 @@ string
 </tr>
 <tr>
 <td>
-<code>allocationStop</code><br>
+<code>staticAllocationStop</code><br>
 <em>
 string
 </em>
@@ -1268,6 +1360,7 @@ bool
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.AllocatedRange">AllocatedRange</a>, 
 <a href="#airship.airshipit.org/v1.BuilderNetwork">BuilderNetwork</a>, 
 <a href="#airship.airshipit.org/v1.IPPoolSpec">IPPoolSpec</a>)
 </p>
