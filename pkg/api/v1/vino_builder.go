@@ -22,7 +22,7 @@ type Builder struct {
 	PXEBootImageHost     string `json:"pxeBootImageHost,omitempty"`
 	PXEBootImageHostPort int    `json:"pxeBootImageHostPort,omitempty"`
 
-	Networks []Network `json:"networks,omitempty"`
+	Networks []BuilderNetwork `json:"networks,omitempty"`
 	// (TODO) change json tag to cpuConfiguration when vino-builder has these chanages as well
 	CPUConfiguration CPUConfiguration `json:"configuration,omitempty"`
 	Domains          []BuilderDomain  `json:"domains,omitempty"`
@@ -33,6 +33,13 @@ type BuilderNetworkInterface struct {
 	IPAddress        string `json:"ipAddress,omitempty"`
 	MACAddress       string `json:"macAddress,omitempty"`
 	NetworkInterface `json:",inline"`
+}
+
+type BuilderNetwork struct {
+	BridgeIP  string `json:"bridgeIP,omitempty"`
+	BridgeMAC string `json:"bridgeMAC,omitempty"`
+	Range     Range  `json:"range,omitempty"`
+	Network   `json:",inline"`
 }
 
 // BuilderDomain represents a VINO libvirt domain

@@ -63,8 +63,6 @@ type VinoSpec struct {
 	Nodes []NodeSet `json:"nodes,omitempty"`
 	// DaemonSetOptions defines how vino will spawn daemonset on nodes
 	DaemonSetOptions DaemonSetOptions `json:"daemonSetOptions,omitempty"`
-	// VMBridge defines the single interface name to be used as a bridge for VMs
-	VMBridge string `json:"vmBridge"`
 	// BMCCredentials contain credentials that will be used to create BMH nodes
 	// sushy tools will use these credentials as well, to set up authentication
 	BMCCredentials BMCCredentials `json:"bmcCredentials"`
@@ -118,6 +116,9 @@ type Network struct {
 	PhysicalInterface string `json:"physicalInterface,omitempty"`
 	// LibvirtTemplate identifies which libvirt template to be used to create a network
 	LibvirtTemplate string `json:"libvirtTemplate,omitempty"`
+	// BridgeName is the name of the bridge to be created as libvirt network.
+	// works if AllocateNodeIP is sepcified
+	BridgeName string `json:"bridgeName,omitempty"`
 }
 
 // VMRoutes defined

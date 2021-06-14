@@ -149,8 +149,8 @@ int
 <td>
 <code>networks</code><br>
 <em>
-<a href="#airship.airshipit.org/v1.Network">
-[]Network
+<a href="#airship.airshipit.org/v1.BuilderNetwork">
+[]BuilderNetwork
 </a>
 </em>
 </td>
@@ -245,6 +245,26 @@ string
 </tr>
 <tr>
 <td>
+<code>enableVNC</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>vncPassword</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>interfaces</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.BuilderNetworkInterface">
@@ -253,6 +273,73 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="airship.airshipit.org/v1.BuilderNetwork">BuilderNetwork
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.Builder">Builder</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>bridgeIP</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>bridgeMAC</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>range</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.Range">
+Range
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>Network</code><br>
+<em>
+<a href="#airship.airshipit.org/v1.Network">
+Network
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>Network</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
@@ -774,7 +861,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#airship.airshipit.org/v1.Builder">Builder</a>, 
+<a href="#airship.airshipit.org/v1.BuilderNetwork">BuilderNetwork</a>, 
 <a href="#airship.airshipit.org/v1.VinoSpec">VinoSpec</a>)
 </p>
 <p>Network defines libvirt networks</p>
@@ -907,6 +994,18 @@ string
 </td>
 <td>
 <p>LibvirtTemplate identifies which libvirt template to be used to create a network</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bridgeName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BridgeName is the name of the bridge to be created as libvirt network.
+works if AllocateNodeIP is sepcified</p>
 </td>
 </tr>
 </tbody>
@@ -1140,6 +1239,17 @@ string
 <p>BootInterfaceName interface name to use to boot virtual machines</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>enableVNC</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>EnableVNC create VNC for graphical interaction with the VM that will be created.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1148,6 +1258,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#airship.airshipit.org/v1.BuilderNetwork">BuilderNetwork</a>, 
 <a href="#airship.airshipit.org/v1.IPPoolSpec">IPPoolSpec</a>)
 </p>
 <p>Range has (inclusive) bounds within a subnet from which IPs can be allocated</p>
@@ -1343,17 +1454,6 @@ DaemonSetOptions
 </tr>
 <tr>
 <td>
-<code>vmBridge</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>VMBridge defines the single interface name to be used as a bridge for VMs</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>bmcCredentials</code><br>
 <em>
 <a href="#airship.airshipit.org/v1.BMCCredentials">
@@ -1499,17 +1599,6 @@ DaemonSetOptions
 </td>
 <td>
 <p>DaemonSetOptions defines how vino will spawn daemonset on nodes</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>vmBridge</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>VMBridge defines the single interface name to be used as a bridge for VMs</p>
 </td>
 </tr>
 <tr>

@@ -86,6 +86,10 @@ spec:
                       type: string
                     allocationStop:
                       type: string
+                    bridgeName:
+                      description: BridgeName is the name of the bridge to be created
+                        as libvirt network. works if AllocateNodeIP is sepcified
+                      type: string
                     dns_servers:
                       items:
                         type: string
@@ -239,13 +243,8 @@ spec:
                 description: PXEBootImageHostPort will be used to download the PXE
                   boot image
                 type: integer
-              vmBridge:
-                description: VMBridge defines the single interface name to be used
-                  as a bridge for VMs
-                type: string
             required:
             - bmcCredentials
-            - vmBridge
             type: object
           status:
             description: VinoStatus defines the observed state of Vino
