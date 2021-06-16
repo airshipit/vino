@@ -229,11 +229,6 @@ func (r *VinoReconciler) decorateDaemonSet(ctx context.Context, ds *appsv1.Daemo
 	ds.Namespace = getRuntimeNamespace()
 	ds.Name = r.getDaemonSetName(vino)
 
-	// TODO develop logic to derive all required ENV variables from VINO CR, and pass them
-	// to setENV function instead
-	if vino.Spec.VMBridge != "" {
-		setEnv(ctx, ds, vinov1.EnvVarVMInterfaceName, vino.Spec.VMBridge)
-	}
 	setEnv(ctx, ds, vinov1.EnvVarBasicAuthUsername, vino.Spec.BMCCredentials.Username)
 	setEnv(ctx, ds, vinov1.EnvVarBasicAuthPassword, vino.Spec.BMCCredentials.Password)
 

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net"
 	"text/template"
-	"time"
 
 	"github.com/Masterminds/sprig"
 	"github.com/go-logr/logr"
@@ -46,7 +45,7 @@ type networkTemplateValues struct {
 	BMHName string
 
 	Node     vinov1.NodeSet // the specific node type to be templated
-	Networks []vinov1.Network
+	Networks []vinov1.BuilderNetwork
 	vinov1.BuilderDomain
 }
 
@@ -265,7 +264,7 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod, nodeCount int)
 	vinoBuilder := vinov1.Builder{
 		PXEBootImageHost:     r.ViNO.Spec.PXEBootImageHost,
 		PXEBootImageHostPort: r.ViNO.Spec.PXEBootImageHostPort,
-		Networks:             r.ViNO.Spec.Networks,
+		Networks:             nodeNetworks,
 		CPUConfiguration:     r.ViNO.Spec.CPUConfiguration,
 		Domains:              domains,
 		NodeCount:            nodeCount,
@@ -276,27 +275,36 @@ func (r *BMHManager) setBMHs(ctx context.Context, pod corev1.Pod, nodeCount int)
 // nodeNetworks returns a copy of node network with a unique per node values
 func (r *BMHManager) nodeNetworks(ctx context.Context,
 	globalNetworks []vinov1.Network,
-	k8sNode *corev1.Node) ([]vinov1.Network, error) {
-	for netIndex, network := range globalNetworks {
-		for routeIndex, route := range network.Routes {
+	k8sNode *corev1.Node) ([]vinov1.BuilderNetwork, error) {
+	builderNetworks := []vinov1.BuilderNetwork{}
+	for _, network := range globalNetworks {
+		builderNetwork := vinov1.BuilderNetwork{
+			Network: network,
+		}
+
+		r.Logger.Info("Getting GW bridge IP from node", "node", k8sNode.Name)
+		bridgeIP, mac, err := r.getBridgeIPandMAC(ctx, network, k8sNode)
+		if err != nil {
+			return []vinov1.BuilderNetwork{}, err
+		}
+		builderNetwork.BridgeIP = bridgeIP
+		builderNetwork.BridgeMAC = mac
+
+		for routeIndex, route := range builderNetwork.Network.Routes {
 			if route.Gateway == "$vinobridge" {
-				r.Logger.Info("Getting GW bridge IP from node", "node", k8sNode.Name)
-				bridgeIP, err := r.getBridgeIP(ctx, k8sNode)
-				if err != nil {
-					return []vinov1.Network{}, err
-				}
-				globalNetworks[netIndex].Routes[routeIndex].Gateway = bridgeIP
+				builderNetwork.Network.Routes[routeIndex].Gateway = bridgeIP
 			}
 		}
+		builderNetworks = append(builderNetworks, builderNetwork)
 	}
-	return globalNetworks, nil
+	return builderNetworks, nil
 }
 
 func (r *BMHManager) domainSpecificNetValues(
 	ctx context.Context,
 	bmhName string,
 	node vinov1.NodeSet,
-	networks []vinov1.Network) (networkTemplateValues, error) {
+	networks []vinov1.BuilderNetwork) (networkTemplateValues, error) {
 	// Allocate an IP for each of this BMH's network interfaces
 	bootMAC := ""
 	domainInterfaces := []vinov1.BuilderNetworkInterface{}
@@ -370,31 +378,14 @@ func (r *BMHManager) annotateNode(ctx context.Context, k8sNode *corev1.Node, vin
 	return r.Update(ctx, k8sNode)
 }
 
-func (r *BMHManager) getBridgeIP(ctx context.Context, k8sNode *corev1.Node) (string, error) {
-	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	for {
-		select {
-		case <-ctxTimeout.Done():
-			return "", ctx.Err()
-		default:
-			node := &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: k8sNode.Name,
-				},
-			}
-			if err := r.Get(ctx, client.ObjectKeyFromObject(node), node); err != nil {
-				return "", err
-			}
-
-			ip, exist := k8sNode.Labels[vinov1.VinoDefaultGatewayBridgeLabel]
-			if exist {
-				return ip, nil
-			}
-			time.Sleep(10 * time.Second)
-		}
+func (r *BMHManager) getBridgeIPandMAC(ctx context.Context,
+	network vinov1.Network,
+	k8sNode *corev1.Node) (string, string, error) {
+	subnetRange, err := ipam.NewRange(network.AllocationStart, network.AllocationStop)
+	if err != nil {
+		return "", "", err
 	}
+	return r.Ipam.AllocateIP(ctx, network.SubNet, subnetRange, k8sNode.Name)
 }
 
 func (r *BMHManager) getNode(ctx context.Context, pod corev1.Pod) (*corev1.Node, error) {
@@ -403,8 +394,7 @@ func (r *BMHManager) getNode(ctx context.Context, pod corev1.Pod) (*corev1.Node,
 			Name: pod.Spec.NodeName,
 		},
 	}
-	err := r.Get(ctx, client.ObjectKeyFromObject(node), node)
-	return node, err
+	return node, r.Get(ctx, client.ObjectKeyFromObject(node), node)
 }
 
 func (r *BMHManager) getBMHNodePrefix(pod corev1.Pod) string {
