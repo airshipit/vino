@@ -4,12 +4,19 @@
     command: facts
     uri: "{{ libvirt_uri }}"
 
+- name: create directory for vino pool
+  file:
+    state: directory
+    # TODO remove this hardcode, define vino storage variables in vino CR
+    path: "/var/lib/libvirt/vino-pool"
+    mode: 0755
+
 - name: define storage the storage pool
   virt_pool:
     state: present
     name: "{{ item.name }}"
     uri: "{{ libvirt_uri }}"
-    xml: "{{item.libvirtTemplate}}"
+    xml: "{{ item.libvirtTemplate }}"
 
 - name: activate the storage pool
   virt_pool:
